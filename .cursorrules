@@ -1,0 +1,11 @@
+# Cursor Rules for AI Agent System
+
+You are working in a project that uses the standardized "Second Brain" architecture in the `agents/` directory.
+
+CRITICAL INSTRUCTIONS:
+1. ALWAYS read and strictly follow `AGENTS.md` and `agents/AGENT_GUIDE.md` before making any changes.
+2. Review `agents/rules/ANTI_PATTERNS.md` and `agents/rules/AGENT_RULES.md` to avoid regressions and bad practices.
+3. Check `agents/STATUS.md` and `agents/tasks/active_task.md` to understand current progress and active checklist.
+4. If this is a newly initialized project, follow `agents/rules/ONBOARDING_PROTOCOL.md`.
+5. When facing an error or fixing a bug, document it in `agents/bugs_and_fixes/`.
+6. When closing a session, log the summary in `agents/history/`.

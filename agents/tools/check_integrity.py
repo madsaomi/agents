@@ -26,7 +26,6 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-# Авто-определение каталогов: ищет папку agents/ рядом со скриптом или в родительском каталоге
 SCRIPT_DIR = Path(__file__).resolve().parent
 AGENTS_DIR = SCRIPT_DIR.parent
 PROJECT_ROOT = AGENTS_DIR.parent
@@ -56,7 +55,7 @@ def run_integrity_check():
     print(f"{BOLD}1. Проверка структуры каталогов 'agents/':{RESET}")
     required_subdirs = [
         "architecture", "bugs_and_fixes", "decisions", "deployment",
-        "history", "plans", "registry", "rules", "runbooks",
+        "history", "plans", "product", "registry", "rules", "runbooks",
         "tasks", "templates", "testing", "tools", "walkthroughs"
     ]
     for subdir in required_subdirs:
@@ -72,6 +71,7 @@ def run_integrity_check():
         AGENTS_DIR / "AGENT_GUIDE.md",
         AGENTS_DIR / "STATUS.md",
         AGENTS_DIR / "GLOSSARY.md",
+        AGENTS_DIR / "product" / "PRD.md",
         AGENTS_DIR / "rules" / "AGENT_RULES.md",
         AGENTS_DIR / "rules" / "ANTI_PATTERNS.md",
         AGENTS_DIR / "rules" / "CODING_STANDARDS.md",

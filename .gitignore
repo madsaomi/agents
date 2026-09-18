@@ -31,5 +31,7 @@ desktop.ini
 
 # Logs & Temporary Files
 *.log
+context_dump.md
+agents/tools/context_dump.md
 scratch/
 .system_generated/
