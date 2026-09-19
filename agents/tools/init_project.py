@@ -52,8 +52,12 @@ def init_project(name: str, desc: str, stack: str, agent: str):
     if root_agents.is_file():
         scan_targets.append(root_agents)
 
+    templates_dir = AGENTS_DIR / "templates"
     for file_path in scan_targets:
-        # Пропускаем сам шаблон инициализации или примеры если не нужно
+        # Пропускаем бланки шаблонов (agents/templates/), чтобы сохранить их в чистоте для будущих планов и задач
+        if templates_dir in file_path.parents or file_path.parent == templates_dir:
+            continue
+
         try:
             content = file_path.read_text(encoding="utf-8", errors="replace")
             has_placeholder = any(k in content for k in replacements.keys())

@@ -26,10 +26,24 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 AGENTS_DIR = SCRIPT_DIR.parent
 PROJECT_ROOT = AGENTS_DIR.parent
 
+def extract_completed_tasks_from_active() -> list:
+    """Извлекает пункты [x] из active_task.md."""
+    active_path = AGENTS_DIR / "tasks" / "active_task.md"
+    if not active_path.is_file():
+        return []
+    try:
+        content = active_path.read_text(encoding="utf-8", errors="replace")
+        matches = re.findall(r"^\s*[-*]\s*\[x\]\s*(.+)$", content, re.MULTILINE)
+        return [m.strip() for m in matches if m.strip()]
+    except Exception:
+        return []
+
 def end_session(agent: str, task_id: str, done_items: list, next_steps: str, decisions: str = ""):
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%Y-%m-%d %H:%M")
+    tz_name = now.astimezone().tzname() or ""
+    time_display = f"{time_str} ({tz_name})" if tz_name else time_str
 
     # Вычисляем следующий номер сессии за сегодня
     history_dir = AGENTS_DIR / "history"
@@ -42,12 +56,30 @@ def end_session(agent: str, task_id: str, done_items: list, next_steps: str, dec
 
     # Формируем содержимое отчета
     done_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(done_items)])
-    decisions_text = decisions.strip() if decisions.strip() else "- Стандартные архитектурные решения согласно спецификации."
+    decisions_text = decisions.strip() if decisions.strip() else ""
+    if not decisions_text:
+        # Пытаемся извлечь решения из последнего ADR
+        adr_dir = AGENTS_DIR / "decisions"
+        adr_files = sorted(
+            [f for f in adr_dir.glob("ADR_*.md")],
+            key=lambda x: x.stat().st_mtime,
+            reverse=True
+        ) if adr_dir.is_dir() else []
+        if adr_files:
+            try:
+                adr_text = adr_files[0].read_text(encoding="utf-8", errors="replace")
+                adr_title_match = re.search(r"^#\s*(.+)$", adr_text, re.MULTILINE)
+                if adr_title_match:
+                    decisions_text = f"- {adr_title_match.group(1).strip()} (см. `agents/decisions/{adr_files[0].name}`)"
+            except Exception:
+                pass
+        if not decisions_text:
+            decisions_text = "- Стандартные архитектурные решения согласно спецификации."
     next_text = next_steps.strip() if next_steps.strip() else "- Продолжить выполнение активной задачи согласно agents/tasks/active_task.md."
 
     report_content = f"""# 📝 Отчет о сессии: {filename.replace('.md', '')}
 
-- **Дата и время:** {time_str}
+- **Дата и время:** {time_display}
 - **Агент / Разработчик:** {agent}
 - **Операционная система:** {sys.platform}
 - **ID Задачи:** {task_id}
@@ -80,7 +112,7 @@ def end_session(agent: str, task_id: str, done_items: list, next_steps: str, dec
         # Заменяем дату последнего обновления
         status_text = re.sub(
             r"\*\*Последнее обновление:\*\*.*",
-            f"**Последнее обновление:** {time_str} (UTC+5)",
+            f"**Последнее обновление:** {time_display}",
             status_text
         )
         status_text = re.sub(
@@ -89,7 +121,7 @@ def end_session(agent: str, task_id: str, done_items: list, next_steps: str, dec
             status_text
         )
         status_file.write_text(status_text, encoding="utf-8")
-        print(f"✓ Обновлен дашборд agents/STATUS.md (дата: {time_str})")
+        print(f"✓ Обновлен дашборд agents/STATUS.md (дата: {time_display})")
 
     # Запускаем валидацию
     print("\nЗапуск проверки целостности...")
@@ -111,24 +143,40 @@ def main():
     done = args.done
     next_steps = args.next
 
+    auto_done = extract_completed_tasks_from_active()
+
     if not done:
         try:
             print("\n--- 🏁 Завершение Рабочей Сессии ---")
             agent = input(f"Имя агента/разработчика [{agent}]: ").strip() or agent
             task_id = input(f"ID активной задачи [{task_id}]: ").strip() or task_id
-            print("\nВведите выполненные пункты (по одному на строку, пустая строка для завершения):")
-            done_list = []
-            while True:
-                item = input("  - ").strip()
-                if not item:
-                    break
-                done_list.append(item)
+            
+            if auto_done:
+                print(f"\n📌 Найдено {len(auto_done)} выполненных пунктов [x] в active_task.md:")
+                for item in auto_done:
+                    print(f"   ✓ {item}")
+                use_auto = input("Использовать эти пункты? [Y/n]: ").strip().lower()
+                if use_auto in ("", "y", "yes", "д", "да"):
+                    done_list = auto_done
+                else:
+                    done_list = []
+            else:
+                done_list = []
+
+            if not done_list:
+                print("\nВведите выполненные пункты (по одному на строку, пустая строка для завершения):")
+                while True:
+                    item = input("  - ").strip()
+                    if not item:
+                        break
+                    done_list.append(item)
+            
             if not done_list:
                 done_list = ["Выполнены плановые работы по проекту."]
             next_steps = input("\nЧто сделать следующему агенту? ").strip() or "Продолжить по чек-листу active_task.md"
         except (EOFError, KeyboardInterrupt):
             print("\nВвод прерван. Использованы стандартные значения.")
-            done_list = ["Пакет изменений зафиксирован."]
+            done_list = auto_done if auto_done else ["Пакет изменений зафиксирован."]
             next_steps = "Продолжить по плану."
     else:
         done_list = [d.strip() for d in done.split(";") if d.strip()]

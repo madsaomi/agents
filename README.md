@@ -1,6 +1,26 @@
 # 🧠 AI-Ready Project Template ("Second Brain" for Agents)
 
+[![CI Status](https://img.shields.io/badge/CI-Passing-brightgreen)](.github/workflows/integrity.yml)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![AI Agents](https://img.shields.io/badge/AI%20Agents-Antigravity%20|%20Cursor%20|%20Claude%20|%20Windsurf%20|%20Copilot-blueviolet)](AGENTS.md)
+
 Универсальный шаблон долгосрочной памяти, требований к продукту, архитектуры и регламентов разработки для любых AI-агентов (Google Antigravity, Cursor, Claude Code, ChatGPT, Windsurf, GitHub Copilot, Aider и др.).
+
+---
+
+## ⚡ Быстрый старт с единым CLI (`brain.py`)
+
+Управляйте проектом одной командой прямо из корня репозитория:
+```bash
+python brain.py status              # 📊 Терминальный дашборд проекта и прогресс задач
+python brain.py plan "Feature Name" # 📐 Создать план реализации (Plan-First)
+python brain.py bug "Error Title"   # 🐛 Зафиксировать ошибку в базе знаний
+python brain.py adr "Choice Title"  # 🏛️ Зафиксировать архитектурное решение (ADR)
+python brain.py check               # 🧠 Проверить целостность Второго Мозга (--fix для автопочинки)
+python brain.py dump                # 📦 Скопировать контекст в буфер для веб-чатов (ChatGPT/Claude)
+python brain.py end                 # 🏁 Завершить сессию и сохранить историю
+```
 
 ---
 
@@ -10,7 +30,7 @@
 Когда ты создаешь любой новый проект (веб-сайт, Telegram-бот, мобильное приложение, Python-скрипт, микросервис):
 Скопируй в корень нового проекта:
 1. Папку **`agents/`**
-2. Файлы конфигурации AI: **`AGENTS.md`**, **`.cursorrules`**, **`CLAUDE.md`**, **`.env.example`**
+2. Файлы конфигурации AI: **`AGENTS.md`**, **`brain.py`**, **`.cursorrules`**, **`.cursor/`**, **`CLAUDE.md`**, **`.windsurfrules`**, **`.env.example`**
 
 ### Шаг 2: Инициализация (2 варианта)
 
@@ -24,11 +44,17 @@ python agents/tools/init_project.py --name "Мой Проект" --desc "Кра�
 ```
 *(Или запусти без параметров `python agents/tools/init_project.py` для интерактивного ввода).*
 
-### Шаг 3: Работа в удовольствие!
+### Шаг 3: Включение защиты коммитов (Git Hook)
+```bash
+python agents/tools/install_hooks.py
+```
+*Установит pre-commit хук, который не позволит закоммитить сломанную структуру или код без плана.*
+
+### Шаг 4: Работа в удовольствие!
 Теперь любой агент или модель (Gemini, Claude 3.7, GPT-4o, DeepSeek):
 - Всегда знает цель продукта и требования благодаря `agents/product/PRD.md`.
 - Не теряет контекст при перезапуске сессий.
-- Мгновенно подхватывается в Cursor (`.cursorrules`), Claude Code (`CLAUDE.md`) и Copilot (`copilot-instructions.md`).
+- Мгновенно подхватывается в Google Antigravity (`.agents/skills/`), Cursor (`.cursorrules`, `.cursor/rules/`), Claude Code (`CLAUDE.md`), Windsurf (`.windsurfrules`) и Copilot (`copilot-instructions.md`).
 - Не наступает повторно на известные баги (все фиксируются в `agents/bugs_and_fixes/`).
 - Ведет непрерывную историю в `agents/history/`.
 
@@ -41,26 +67,34 @@ python agents/tools/init_project.py --name "Мой Проект" --desc "Кра�
 1. **Проверка целостности Второго Мозга:**
    ```bash
    python agents/tools/check_integrity.py
+   # С автоисправлением недостающих папок:
+   python agents/tools/check_integrity.py --fix
    ```
-   Проверяет наличие всех каталогов, файлов, шаблонов и корректность структуры.
+   Проверяет наличие всех каталогов, файлов, шаблонов, конфигов AI и корректность структуры.
 
 2. **Быстрая инициализация нового проекта:**
    ```bash
    python agents/tools/init_project.py --name "ProjectName" --desc "Description" --stack "TechStack"
    ```
-   Автоматически заменяет все плейсхолдеры в файлах за 1 секунду.
+   Автоматически заменяет все плейсхолдеры в файлах за 1 секунду, не затрагивая чистые шаблоны.
 
-3. **Сборка контекста для веб-чатов (ChatGPT, Claude Web):**
+3. **Мгновенное создание плана (Plan-First):**
+   ```bash
+   python agents/tools/new_plan.py --name "Auth System" --task "TASK-002"
+   ```
+   Автоматически вычисляет следующий номер плана (`plan_001_...`), подставляет метаданные и генерирует бланк.
+
+4. **Сборка контекста для веб-чатов (ChatGPT, Claude Web):**
    ```bash
    python agents/tools/dump_context.py
    ```
-   Упаковывает текущий статус, задачи, архитектуру и последнюю сессию, и **автоматически копирует в буфер обмена**! Просто вставьте (`Ctrl+V`) в любой браузерный чат.
+   Упаковывает текущий статус, активный план, задачи, архитектуру и последнюю сессию, и **автоматически копирует в буфер обмена**! Просто вставьте (`Ctrl+V`) в любой браузерный чат.
 
-4. **Быстрое завершение сессии:**
+5. **Быстрое завершение сессии:**
    ```bash
    python agents/tools/end_session.py
    ```
-   Автоматически формирует отчет в `agents/history/` и обновляет дату в `STATUS.md`.
+   Автоматически определяет выполненные чекбоксы `[x]`, формирует отчет в `agents/history/` и обновляет дату в `STATUS.md`.
 
 ---
 
@@ -83,6 +117,9 @@ agents/
 │   └── ONBOARDING_PROTOCOL.md     # Протокол авто-инициализации в новом проекте
 │
 ├── templates/                     # 📐 Бланки документов (заполнять только их!)
+│   ├── template_plan.md           # Бланк плана реализации (Plan-First)
+│   ├── template_walkthrough.md    # Бланк отчета о сдаче/демонстрации фичи
+│   ├── template_pull_request.md   # Бланк описания Pull Request
 │   ├── template_session_log.md    # Бланк отчета о сессии
 │   ├── template_bug_report.md     # Бланк баг-репорта (Симптом ➔ Причина ➔ Решение)
 │   ├── template_task.md           # Бланк карточки задачи
@@ -128,8 +165,11 @@ agents/
 ├── walkthroughs/                  # 🚀 Отчеты о приемке и демонстрациях
 │
 └── tools/                         # 🛠️ Скрипты автоматизации (Python Standard Library)
-    ├── check_integrity.py         # Проверка целостности Second Brain
+    ├── brain.py                   # 🧠 Единый CLI-комбайн управления Вторым Мозгом
+    ├── check_integrity.py         # Проверка целостности Second Brain (с флагом --fix)
     ├── init_project.py            # Автоматическая инициализация нового проекта
+    ├── new_plan.py                # Мгновенная генерация нового плана (Plan-First)
     ├── dump_context.py            # Копирование контекста в буфер обмена для веб-чатов
-    └── end_session.py             # Автоматизация фиксации завершения сессии
+    ├── end_session.py             # Автоматизация фиксации завершения сессии
+    └── install_hooks.py           # Установка Git pre-commit хука для защиты репозитория
 ```

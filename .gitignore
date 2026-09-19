@@ -35,3 +35,13 @@ context_dump.md
 agents/tools/context_dump.md
 scratch/
 .system_generated/
+
+# AI Agents & Tools
+.aider*
+.aider.conf.yml
+.aider.tags.cache.v3/
+.gemini/
+.continue/
+.zed/
+*.bak
+tmp/

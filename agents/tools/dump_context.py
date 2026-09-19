@@ -51,6 +51,8 @@ def build_context_dump() -> str:
         ("📋 АКТИВНАЯ ЗАДАЧА", AGENTS_DIR / "tasks" / "active_task.md"),
         ("🗺️ КАРТА КОДОВОЙ БАЗЫ", AGENTS_DIR / "architecture" / "CODEBASE_MAP.md"),
         ("🎯 ТРЕБОВАНИЯ К ПРОДУКТУ (PRD)", AGENTS_DIR / "product" / "PRD.md"),
+        ("📖 ГЛОССАРИЙ ТЕРМИНОВ", AGENTS_DIR / "GLOSSARY.md"),
+        ("📏 ПРАВИЛА АГЕНТА", AGENTS_DIR / "rules" / "AGENT_RULES.md"),
     ]
 
     for title, path in files_to_pack:
@@ -60,6 +62,30 @@ def build_context_dump() -> str:
             lines.append("```markdown")
             lines.append(content)
             lines.append("```\n")
+
+    # Ищем активный план реализации в plans/
+    plans_dir = AGENTS_DIR / "plans"
+    plan_files = sorted(
+        [f for f in plans_dir.glob("plan_*.md") if f.name != "README.md"],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )
+    if plan_files:
+        # Проверяем первый файл или ищем IN_PROGRESS
+        active_plan = plan_files[0]
+        for pf in plan_files:
+            try:
+                txt = pf.read_text(encoding="utf-8", errors="replace")
+                if "IN_PROGRESS" in txt or "APPROVED" in txt:
+                    active_plan = pf
+                    break
+            except Exception:
+                pass
+        plan_content = active_plan.read_text(encoding="utf-8", errors="replace").strip()
+        lines.append(f"## 📐 ПЛАН РЕАЛИЗАЦИИ (Plan-First) (`plans/{active_plan.name}`)\n")
+        lines.append("```markdown")
+        lines.append(plan_content)
+        lines.append("```\n")
 
     # Ищем последний лог сессии
     history_files = sorted(

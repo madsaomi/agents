@@ -1,0 +1,29 @@
+name: Second Brain Integrity Check
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  validate-second-brain:
+    name: Validate Second Brain Structure & Rules
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile Python Tools
+        run: |
+          python -m py_compile agents/tools/*.py
+
+      - name: Run Integrity Checker
+        run: |
+          python agents/tools/check_integrity.py
