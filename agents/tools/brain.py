@@ -11,6 +11,7 @@
     python agents/tools/brain.py task <title>        - Создать карточку задачи TASK-XXX
     python agents/tools/brain.py dump                - Скопировать контекст в буфер обмена для AI-чатов
     python agents/tools/brain.py check [--fix]       - Проверить целостность (с авто-исправлением)
+    python agents/tools/brain.py sync [--check]      - Сгенерировать конфиги AI-инструментов из CORE_RULES.md
     python agents/tools/brain.py end                 - Завершить сессию и сформировать отчет
 """
 
@@ -261,6 +262,89 @@ def show_status():
     print(f"{BOLD}{BLUE}──────────────────────────────────────────────────────────────────────{RESET}\n")
 
 # -----------------------------------------------------------------------------
+# sync: генерация конфигов AI-инструментов из единого канона правил
+# -----------------------------------------------------------------------------
+
+SYNC_CORE = AGENTS_DIR / "rules" / "CORE_RULES.md"
+SYNC_TEMPLATES_DIR = AGENTS_DIR / "templates" / "sync"
+# (шаблон-обёртка, целевой файл)
+SYNC_SPECS = [
+    (SYNC_TEMPLATES_DIR / "CLAUDE.md.tpl", PROJECT_ROOT / "CLAUDE.md"),
+    (SYNC_TEMPLATES_DIR / ".cursorrules.tpl", PROJECT_ROOT / ".cursorrules"),
+    (SYNC_TEMPLATES_DIR / ".windsurfrules.tpl", PROJECT_ROOT / ".windsurfrules"),
+    (SYNC_TEMPLATES_DIR / "copilot-instructions.md.tpl", PROJECT_ROOT / ".github" / "copilot-instructions.md"),
+    (SYNC_TEMPLATES_DIR / "second-brain.mdc.tpl", PROJECT_ROOT / ".cursor" / "rules" / "second-brain.mdc"),
+]
+
+
+def _read_norm(path: Path) -> str:
+    """Читает файл с нормализацией переводов строк (CRLF -> LF)."""
+    return path.read_text(encoding="utf-8", errors="replace").replace("\r\n", "\n")
+
+
+def _write_preserve_eol(path: Path, text: str):
+    """Записывает файл, сохраняя стиль переводов строк существующего файла."""
+    eol = "\n"
+    if path.exists() and b"\r\n" in path.read_bytes():
+        eol = "\r\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(text.replace("\n", eol))
+
+
+def render_sync_configs():
+    """Возвращает список (шаблон, цель, отрендеренное содержимое)."""
+    core = _read_norm(SYNC_CORE)
+    rendered = []
+    for tpl, target in SYNC_SPECS:
+        body = _read_norm(tpl)
+        rendered.append((tpl, target, body.replace("{{CORE_RULES}}", core)))
+    return rendered
+
+
+def sync_tools(check: bool = False) -> int:
+    """
+    Генерирует конфиги AI-инструментов из agents/rules/CORE_RULES.md.
+    check=True — только проверка дрейфа (exit 1 при расхождении), без записи.
+    """
+    if not SYNC_CORE.is_file():
+        print(f"❌ Канон правил не найден: {SYNC_CORE.relative_to(PROJECT_ROOT)}")
+        return 1
+
+    drifted, written, missing = [], [], []
+    for _tpl, target, content in render_sync_configs():
+        rel = target.relative_to(PROJECT_ROOT)
+        if not target.is_file():
+            missing.append(rel)
+            current = None
+        else:
+            current = _read_norm(target)
+        if current == content:
+            continue
+        drifted.append(rel)
+        if not check:
+            _write_preserve_eol(target, content)
+            written.append(rel)
+
+    if check:
+        if drifted:
+            print(f"{RED}❌ sync --check: конфиги разошлись с agents/rules/CORE_RULES.md:{RESET}")
+            for rel in drifted:
+                print(f"   • {rel}")
+            print(f"   Запусти: {GREEN}python brain.py sync{RESET}")
+            return 1
+        print(f"{GREEN}✅ sync --check: все {len(SYNC_SPECS)} конфигов соответствуют канону.{RESET}")
+        return 0
+
+    if not drifted:
+        print(f"{GREEN}✅ Конфиги уже актуальны ({len(SYNC_SPECS)} шт.), дрейф не обнаружен.{RESET}")
+        return 0
+    for rel in written:
+        print(f"  ✓ Сгенерирован: {rel}")
+    print(f"{GREEN}🎉 Синхронизировано файлов: {len(written)}. Источник: agents/rules/CORE_RULES.md{RESET}")
+    return 0
+
+# -----------------------------------------------------------------------------
 # Главный диспетчер
 # -----------------------------------------------------------------------------
 
@@ -303,6 +387,10 @@ def main():
     # check
     check_parser = subparsers.add_parser("check", help="Запустить валидатор целостности Второго Мозга")
     check_parser.add_argument("--fix", action="store_true", help="Автоматически восстановить отсутствующие каталоги")
+
+    # sync
+    sync_parser = subparsers.add_parser("sync", help="Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md")
+    sync_parser.add_argument("--check", action="store_true", help="Только проверить дрейф конфигов (exit 1 при расхождении)")
 
     # end
     end_parser = subparsers.add_parser("end", help="Завершить сессию и обновить историю")
@@ -388,6 +476,9 @@ def main():
 
     elif args.command == "check":
         run_integrity_check(fix=args.fix)
+
+    elif args.command == "sync":
+        sys.exit(sync_tools(check=args.check))
 
     elif args.command == "end":
         auto_done = extract_completed_tasks_from_active()
