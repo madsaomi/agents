@@ -43,5 +43,6 @@ scratch/
 .gemini/
 .continue/
 .zed/
+.claude/.session_state.json
 *.bak
 tmp/

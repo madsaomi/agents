@@ -1,6 +1,6 @@
 # 📋 Активная задача: TASK-003 — Исполняемые правила (sync, хуки, субагенты, MCP)
 
-**Статус:** 🔵 IN_PROGRESS (Этап 0 ✅ → Этап 1 ⏭)  
+**Статус:** 🔵 IN_PROGRESS (Этапы 0–2 ✅ → Этап 3 ⏭: субагенты/skills/команды)  
 **Дата создания:** 2026-10-27  
 **Исполнитель:** MiMo (OpenCode)  
 **Приоритет:** HIGH  
@@ -22,12 +22,14 @@
   - [x] 0.4: `tests/test_second_brain.py` — 6 тестов (ссылки, integrity, brain CLI, плейсхолдеры)
   - [x] 0.5: CI `integrity.yml` — добавлен `python -m unittest discover -s tests`
   - [x] 0.6: Плейсхолдеры заполнены через `init_project.py` — 0 ошибок / 0 WARN
-- [ ] **Этап 1: Единый источник правил + `brain.py sync`**
-  - [ ] 1.1: Канон правил + шаблоны-обёртки `agents/templates/sync/`
-  - [ ] 1.2: `brain.py sync` (рендер 5 конфигов)
-  - [ ] 1.3: `brain.py sync --check` + в CI
-  - [ ] 1.4: Сверка форматов `.claude/` с документацией (перед Этапом 2)
-- [ ] **Этап 2: Хуки Claude Code** (см. PLAN-003)
+- [x] **Этап 1: Единый источник правил + `brain.py sync`**
+  - [x] 1.1: Канон `agents/rules/CORE_RULES.md` + шаблоны-обёртки `agents/templates/sync/`
+  - [x] 1.2: `brain.py sync` (рендер 5 конфигов, сохранение EOL)
+  - [x] 1.3: `brain.py sync --check` + шаг в CI + `tests/test_sync.py`
+  - [x] 1.4: Сверка форматов `.claude/` с документацией (официальный hooks reference)
+- [x] **Этап 2: Хуки Claude Code**
+  - [x] `.claude/settings.json` +4 скрипта в `agents/tools/hooks/` (gate, inject, lint, history)
+  - [x] `tests/test_hooks.py` — 17 сценариев; секция 9 в `check_integrity.py`
 - [ ] **Этап 3: Субагенты, skills, слэш-команды**
 - [ ] **Этап 4: brain-mcp** (optional extra `[mcp]` — решено)
 - [ ] **Этап 5: Пресеты django-drf / aiogram-bot + пакет**

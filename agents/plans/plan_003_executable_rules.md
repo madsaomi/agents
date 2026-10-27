@@ -76,18 +76,18 @@
   - [x] 0.4: Написать `tests/test_second_brain.py` (unittest): резолв ссылок, integrity, brain CLI, плейсхолдеры
   - [x] 0.5: CI: `integrity.yml` → `python -m unittest discover -s tests`
   - [x] 0.6: `check_integrity.py` — 0 ошибок, 0 WARN (плейсхолдеры заполнены: Second Brain Template)
-- [ ] **Этап 1: Единый источник правил + `brain.py sync`**
-  - [ ] 1.1: Определить канон: `agents/rules/AGENT_RULES.md` + `ANTI_PATTERNS.md` + секция prompt-injection — источник контента; `agents/templates/sync/*.tpl` — обёртки под каждый тул
-  - [ ] 1.2: Реализовать `brain.py sync` (рендер → CLAUDE.md, .cursorrules, .windsurfrules, copilot-instructions.md, .cursor/rules/second-brain.mdc)
-  - [ ] 1.3: `brain.py sync --check` — дрейф = exit 1; включить в CI
-  - [ ] 1.4: Сверить форматы с актуальной документацией (`code.claude.com/docs/en/hooks`, `/sub-agents`, `/skills`, `/mcp`) перед Этапом 2
-- [ ] **Этап 2: Хуки Claude Code (главное принуждение)**
-  - [ ] 2.1: `.claude/settings.json` — PreToolUse `Edit|Write` → `plan_gate.py`: нет активного плана/чек-листа (`plans/plan_*.md` со статусом IN_PROGRESS или `active_task.md` с `[ ]`) → **exit 2** + JSON-отказ
-  - [ ] 2.2: PreToolUse `Bash` → блокировка паттернов: `.env`, `id_rsa`, `*.pem`, `rm -rf`, `git push --force`
-  - [ ] 2.3: SessionStart → `inject_context.py` подкладывает `STATUS.md` + `active_task.md` через JSON stdout
-  - [ ] 2.4: PostToolUse `Edit|Write` → `post_edit_lint.py` (ruff/black, если найдены в окружении; иначе тихо выйти 0)
-  - [ ] 2.5: Stop → `session_log.py`: автосоздание/дозапись записи в `history/` (только если агент не сделал это сам — идемпотентно)
-  - [ ] 2.6: Тесты хуков (мок stdin JSON) + валидация в `check_integrity.py`
+- [x] **Этап 1: Единый источник правил + `brain.py sync`**
+  - [x] 1.1: Канон: `agents/rules/CORE_RULES.md` (сводное ядро, ссылается на AGENT_RULES/ANTI_PATTERNS, включает prompt-injection) + `agents/templates/sync/*.tpl` — обёртки под каждый тул
+  - [x] 1.2: Реализовано `brain.py sync` (рендер → CLAUDE.md, .cursorrules, .windsurfrules, copilot-instructions.md, .cursor/rules/second-brain.mdc; сохранение EOL)
+  - [x] 1.3: `brain.py sync --check` — дрейф = exit 1; шаг `Check Config Sync Drift` в CI; `tests/test_sync.py`
+  - [x] 1.4: Сверено с официальной документацией (`code.claude.com/docs/en/hooks`): stdin JSON, `hookSpecificOutput.permissionDecision=deny`, `additionalContext`, `${CLAUDE_PROJECT_DIR}`, exec-form `command`+`args`
+- [x] **Этап 2: Хуки Claude Code (главное принуждение)**
+  - [x] 2.1: `.claude/settings.json` — PreToolUse `Edit|Write` → `pre_tool_gate.py`: нет активного плана (plan_*.md DRAFT/APPROVED/IN_PROGRESS или `[ ]` в active_task) → JSON `permissionDecision: deny` + инструкция `brain.py plan` (анти-дедлок: .md/agents/ пишутся всегда)
+  - [x] 2.2: PreToolUse `Read`/`Bash|PowerShell` → блокировка: чтение/правка `.env` (кроме `.env.example`), `*.pem/*.key/id_*`, `rm -rf`, `git push --force`, `git reset --hard`, `git clean -f`, `curl|sh`, `chmod 777`, `Remove-Item -Recurse`
+  - [x] 2.3: SessionStart → `inject_context.py`: JSON `additionalContext` со STATUS.md + активной задачей; пишет маркер `.claude/.session_state.json`
+  - [x] 2.4: PostToolUse `Edit|Write` → `post_edit_lint.py` (ruff/black если найдены, иначе тихо exit 0; проблемы — additionalContext)
+  - [x] 2.5: Stop → `session_log.py`: автозаготовка истории 1 раз на сессию (идемпотентно; пропускает, если агент сам уже записал сессию)
+  - [x] 2.6: Тесты `tests/test_hooks.py` (17 сценариев, stdin-моки) + секция 9 в `check_integrity.py` (settings.json, события, скрипты)
 - [ ] **Этап 3: Субагенты, skills, слэш-команды**
   - [ ] 3.1: `.claude/agents/`: planner (read-only), implementer, reviewer, test-writer, security-auditor, debugger, docs-keeper — с ограниченными `tools:` и `model:` по роли
   - [ ] 3.2: Skills: `session-handoff`, `bug-triage`, `adr-writer`, `release-checklist` (+ синхронизация `.agents/skills/second_brain`)

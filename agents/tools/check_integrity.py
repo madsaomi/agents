@@ -246,6 +246,45 @@ def run_integrity_check(fix: bool = False):
     else:
         log_check("Формат ссылок (относительные пути, без file:///)", True)
 
+    # 9. Проверка исполняемых правил: sync-канон, конфиги и хуки Claude Code
+    print(f"\n{BOLD}9. Проверка исполняемых правил (sync + хуки Claude Code):{RESET}")
+
+    core_rules = AGENTS_DIR / "rules" / "CORE_RULES.md"
+    ok = core_rules.is_file() and core_rules.stat().st_size > 100
+    if not ok:
+        errors_count += 1
+    log_check("Канон правил agents/rules/CORE_RULES.md", ok, "Файл отсутствует — нет источника для sync!")
+
+    settings_path = PROJECT_ROOT / ".claude" / "settings.json"
+    if settings_path.is_file():
+        try:
+            import json as _json
+            settings = _json.loads(settings_path.read_text(encoding="utf-8"))
+            events = set(settings.get("hooks", {}).keys())
+            required_events = {"SessionStart", "PreToolUse", "PostToolUse", "Stop"}
+            missing_events = required_events - events
+            ok = not missing_events
+            if not ok:
+                errors_count += 1
+            log_check(
+                "Хуки .claude/settings.json (события)",
+                ok,
+                f"Отсутствуют события: {sorted(missing_events)}",
+            )
+        except Exception as e:
+            errors_count += 1
+            log_check("Хуки .claude/settings.json (JSON валиден)", False, str(e))
+    else:
+        warnings_count += 1
+        log_check("Хуки .claude/settings.json", False, "Файл хуков не найден (исполняемые правила не активны)", is_warning=True)
+
+    hooks_dir = AGENTS_DIR / "tools" / "hooks"
+    expected_hooks = ["pre_tool_gate.py", "inject_context.py", "post_edit_lint.py", "session_log.py"]
+    missing_hooks = [h for h in expected_hooks if not (hooks_dir / h).is_file()]
+    if missing_hooks:
+        errors_count += 1
+    log_check("Скрипты хуков agents/tools/hooks/", not missing_hooks, f"Нет: {missing_hooks}")
+
     # Итоговый вывод
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")
     if errors_count == 0:
