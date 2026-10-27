@@ -15,7 +15,7 @@
 ---
 
 ## 🚀 Регламент создания и утверждения плана:
-1. **Создание плана:** Скопировать шаблон [`agents/templates/template_plan.md`](file:///agents/templates/template_plan.md) в `agents/plans/plan_XXX_<name>.md`.
+1. **Создание плана:** Скопировать шаблон [`agents/templates/template_plan.md`](../templates/template_plan.md) в `agents/plans/plan_XXX_<name>.md`.
 2. **Заполнение разделов:**
    - Четко сформулировать цель и ожидаемый результат.
    - Провести инспекцию кодовой базы и составить точный перечень затронутых файлов (`[NEW]`, `[MODIFY]`, `[DELETE]`).

@@ -10,4 +10,4 @@
 ---
 
 ## 📝 Как зарегистрироваться:
-Скопируй файл [`agent_profile_template.md`](file:///agents/registry/agent_profile_template.md) и переименуй его в `agent_<имя>_<модель>.md`.
+Скопируй файл [`agent_profile_template.md`](agent_profile_template.md) и переименуй его в `agent_<имя>_<модель>.md`.

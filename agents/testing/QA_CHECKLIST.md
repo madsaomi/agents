@@ -1,6 +1,6 @@
 # 🧪 Чек-лист Контроля Качества и Регрессионного Тестирования (QA_CHECKLIST.md)
 
-**Проект:** {{PROJECT_NAME}}  
+**Проект:** Second Brain Template  
 Каждый агент перед закрытием задачи или созданием релиза **ОБЯЗАН** выполнить проверку по этому списку.
 
 ---
@@ -56,6 +56,6 @@
   ```bash
   python agents/tools/check_integrity.py
   ```
-- [ ] Чек-лист в [`agents/tasks/active_task.md`](file:///agents/tasks/active_task.md) актуализирован.
-- [ ] Добавлен отчет о сессии в [`agents/history/`](file:///agents/history/).
-- [ ] Обновлен статус в [`agents/STATUS.md`](file:///agents/STATUS.md).
+- [ ] Чек-лист в [`agents/tasks/active_task.md`](../tasks/active_task.md) актуализирован.
+- [ ] Добавлен отчет о сессии в [`agents/history/`](../history).
+- [ ] Обновлен статус в [`agents/STATUS.md`](../STATUS.md).

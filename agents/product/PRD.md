@@ -1,6 +1,6 @@
 # 📋 Документ Требований к Продукту (PRD.md)
 
-**Проект:** {{PROJECT_NAME}}  
+**Проект:** Second Brain Template  
 **Версия документа:** 1.0  
 **Статус:** DRAFT / IN_REVIEW / APPROVED  
 

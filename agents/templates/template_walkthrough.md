@@ -2,8 +2,8 @@
 
 > **Дата проведения:** {{DATE}}  
 > **Исполнитель / Агент:** {{AGENT_NAME}}  
-> **Связанный план:** [PLAN-XXX](file:///agents/plans/)  
-> **Связанная задача:** [TASK-XXX](file:///agents/tasks/active_task.md)  
+> **Связанный план:** [PLAN-XXX](../plans)  
+> **Связанная задача:** [TASK-XXX](../tasks/active_task.md)  
 > **Итог валидации:** 🟢 ACCEPTED (Принято) | 🟡 REQUIRES_FIXES (Требуются доработки)  
 
 ---

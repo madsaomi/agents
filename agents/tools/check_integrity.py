@@ -191,6 +191,7 @@ def run_integrity_check(fix: bool = False):
     # 8. Проверка локальных ссылок в Markdown
     print(f"\n{BOLD}8. Проверка целостности ссылок в Markdown документации:{RESET}")
     broken_links = []
+    deprecated_links = []
     link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
     md_files = list(AGENTS_DIR.rglob("*.md"))
     root_agents = PROJECT_ROOT / "AGENTS.md"
@@ -209,6 +210,8 @@ def run_integrity_check(fix: bool = False):
                 if not target_part:
                     continue
                 if target_part.startswith("file:///"):
+                    # Устаревший формат: ссылки должны быть относительными от документа
+                    deprecated_links.append((mf.relative_to(PROJECT_ROOT) if PROJECT_ROOT in mf.parents else mf.name, url))
                     clean = target_part.replace("file:///", "").lstrip("/")
                     target_path = PROJECT_ROOT / clean
                 elif target_part.startswith("/"):
@@ -231,6 +234,17 @@ def run_integrity_check(fix: bool = False):
         )
     else:
         log_check("Валидация Markdown ссылок (битых ссылок не обнаружено)", True)
+
+    if deprecated_links:
+        warnings_count += 1
+        log_check(
+            "Формат ссылок (file:/// → относительные)",
+            False,
+            f"{len(deprecated_links)} ссылок в устаревшем формате file:/// (например: {deprecated_links[0][1]} в {deprecated_links[0][0]})",
+            is_warning=True
+        )
+    else:
+        log_check("Формат ссылок (относительные пути, без file:///)", True)
 
     # Итоговый вывод
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")

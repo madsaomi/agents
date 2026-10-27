@@ -3,7 +3,7 @@
 > **Статус:** 🟡 DRAFT | 🟢 APPROVED | 🔵 IN_PROGRESS | ✅ COMPLETED  
 > **Дата создания:** {{DATE}}  
 > **Автор / Агент:** {{AGENT_NAME}}  
-> **Связанная задача:** [TASK-XXX](file:///agents/tasks/active_task.md)  
+> **Связанная задача:** [TASK-XXX](../tasks/active_task.md)  
 > **Целевая ветка / Ревизия:** main  
 
 ---

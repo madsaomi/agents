@@ -10,7 +10,7 @@
 
 ### Шаг 1: Изучение контекста («Сначала читай, потом делай»)
 1. Прочти этот файл (`agents/rules/AGENT_RULES.md`).
-2. Ознакомься со строгими запретами: [`agents/rules/ANTI_PATTERNS.md`](file:///agents/rules/ANTI_PATTERNS.md).
+2. Ознакомься со строгими запретами: [`agents/rules/ANTI_PATTERNS.md`](ANTI_PATTERNS.md).
 3. Открой `agents/STATUS.md` — пойми общее текущее состояние проекта и стек.
 4. Открой `agents/tasks/active_task.md` — посмотри текущую выполняемую задачу и незавершенные шаги.
 5. Открой `agents/architecture/CODEBASE_MAP.md` — изучи структуру файлов и модулей.
@@ -19,15 +19,15 @@
 
 ### Шаг 2: Регистрация своего профиля (при первом подключении)
 - Если ты новый агент или используешь новую модель/среду:
-  - Создай карточку в `agents/registry/agent_<name>_<model>.md` по шаблону [`agents/registry/agent_profile_template.md`](file:///agents/registry/agent_profile_template.md).
+  - Создай карточку в `agents/registry/agent_<name>_<model>.md` по шаблону [`agents/registry/agent_profile_template.md`](../registry/agent_profile_template.md).
 
 ### Шаг 3: Обязательное планирование перед кодом (Plan-First)
 > [!CAUTION]
 > **СТРОЖАЙШИЙ ЗАПРЕТ:** Запрещено писать или изменять код без предварительно созданного и зафиксированного плана! Любая попытка сразу писать код без плана считается грубейшим нарушением регламента.
 
 1. **Создай план реализации:**
-   - Для новых фич, интеграций или рефакторингов создай `agents/plans/plan_XXX_<name>.md` по шаблону [`agents/templates/template_plan.md`](file:///agents/templates/template_plan.md).
-   - Для текущих задач тщательно распиши пошаговый чек-лист в [`agents/tasks/active_task.md`](file:///agents/tasks/active_task.md).
+   - Для новых фич, интеграций или рефакторингов создай `agents/plans/plan_XXX_<name>.md` по шаблону [`agents/templates/template_plan.md`](../templates/template_plan.md).
+   - Для текущих задач тщательно распиши пошаговый чек-лист в [`agents/tasks/active_task.md`](../tasks/active_task.md).
 2. **Обязательное содержание плана:**
    - Перечень всех затрагиваемых файлов (`[NEW]`, `[MODIFY]`, `[DELETE]`).
    - Атомарная декомпозиция на последовательные шаги `[ ]`.
@@ -44,7 +44,7 @@
 ### Шаг 5: Фиксация ВСЕХ ошибок и сбоев (База знаний)
 - Если в процессе выполнения, запуска, тестов или сборки возникла ошибка/сбой:
   - Ты **ОБЯЗАН** зафиксировать её в `agents/bugs_and_fixes/BUG_XXX_<short_name>.md`.
-  - Используй шаблон [`agents/templates/template_bug_report.md`](file:///agents/templates/template_bug_report.md).
+  - Используй шаблон [`agents/templates/template_bug_report.md`](../templates/template_bug_report.md).
   - Обязательные разделы:
     1. **Симптом**: точный текст ошибки / traceback / код сбоя.
     2. **Первопричина (Root Cause)**: *почему* возникла проблема (архитектура, специфика ОС, версии библиотек).
@@ -53,12 +53,12 @@
 
 ### Шаг 6: Архитектурные решения (ADR)
 - Если принимается ключевое техническое решение (выбор фреймворка, базы данных, паттерна проектирования, протокола обмена):
-  - Создай файл `agents/decisions/ADR_XXX_<name>.md` по шаблону [`agents/templates/template_adr.md`](file:///agents/templates/template_adr.md).
+  - Создай файл `agents/decisions/ADR_XXX_<name>.md` по шаблону [`agents/templates/template_adr.md`](../templates/template_adr.md).
 
 ### Шаг 7: Инкрементальный журнал истории (НЕ ПЕРЕЗАПИСЫВАТЬ!)
 - Файлы в `agents/history/` **строго запрещено перезаписывать или удалять**.
 - В конце каждой сессии создается новый файл с уникальной временной меткой:  
-  `agents/history/session_YYYY-MM-DD_HH-mm_<agent_name>.md` по шаблону [`agents/templates/template_session_log.md`](file:///agents/templates/template_session_log.md).
+  `agents/history/session_YYYY-MM-DD_HH-mm_<agent_name>.md` по шаблону [`agents/templates/template_session_log.md`](../templates/template_session_log.md).
 
 ### Шаг 8: Обновление дашборда и карты
 - Перед завершением сессии актуализируй `agents/STATUS.md` и (если были созданы/удалены файлы кодовой базы) `agents/architecture/CODEBASE_MAP.md`.

@@ -3,7 +3,7 @@
 > **Статус:** ✅ COMPLETED  
 > **Дата создания:** 2026-09-19  
 > **Автор / Агент:** Gemini (Antigravity)  
-> **Связанная задача:** [TASK-001](file:///agents/tasks/active_task.md)  
+> **Связанная задача:** [TASK-001](../tasks/active_task.md)  
 > **Целевая ветка / Ревизия:** main  
 
 ---

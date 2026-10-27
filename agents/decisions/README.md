@@ -10,11 +10,11 @@
 ---
 
 ## 📝 Как создать новый ADR:
-1. Скопируй бланк из [`agents/templates/template_adr.md`](file:///agents/templates/template_adr.md).
+1. Скопируй бланк из [`agents/templates/template_adr.md`](../templates/template_adr.md).
 2. Назови файл по стандарту: `ADR_XXX_<short_name>.md` (например, `ADR_001_database_selection.md`).
 3. Заполни разделы:
    - **Контекст:** Какая стояла проблема.
    - **Альтернативы:** Какие варианты сравнивались.
    - **Решение:** Что выбрано и почему.
    - **Последствия:** Плюсы, компромиссы и риски.
-4. Ознакомься с эталонным примером в [`ADR_000_example.md`](file:///agents/decisions/ADR_000_example.md).
+4. Ознакомься с эталонным примером в [`ADR_000_example.md`](ADR_000_example.md).

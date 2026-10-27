@@ -2,8 +2,8 @@
 
 > **Дата проведения:** 2026-09-20  
 > **Исполнитель / Агент:** Gemini (Antigravity)  
-> **Связанный план:** [PLAN-001](file:///agents/plans/plan_001_second_brain_enhancements.md)  
-> **Связанная задача:** [TASK-001](file:///agents/tasks/active_task.md)  
+> **Связанный план:** [PLAN-001](../plans/plan_001_second_brain_enhancements.md)  
+> **Связанная задача:** [TASK-001](../tasks/active_task.md)  
 > **Итог валидации:** 🟢 ACCEPTED (Принято)  
 
 ---

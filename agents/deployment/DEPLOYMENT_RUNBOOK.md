@@ -1,6 +1,6 @@
 # 🚀 Руководство по Развертыванию Проекта (DEPLOYMENT_RUNBOOK.md)
 
-**Проект:** {{PROJECT_NAME}}  
+**Проект:** Second Brain Template  
 Инструкции по сборке, настройке окружения и запуску сервиса в тестовой и производственной средах.
 
 ---
@@ -58,19 +58,19 @@ docker compose logs -f
 ## 🌐 3. Развертывание на Linux сервере (Systemd + Nginx + Let's Encrypt SSL)
 
 ### Шаг 1: Настройка Systemd сервиса (Автозапуск 24/7)
-Создать файл `/etc/systemd/system/{{PROJECT_NAME}}.service`:
+Создать файл `/etc/systemd/system/Second Brain Template.service`:
 ```ini
 [Unit]
-Description={{PROJECT_NAME}} Service
+Description=Second Brain Template Service
 After=network.target
 
 [Service]
 User=www-data
-WorkingDirectory=/var/www/{{PROJECT_NAME}}
-ExecStart=/var/www/{{PROJECT_NAME}}/venv/bin/python -m uvicorn src.main:app --host 127.0.0.1 --port 8000
+WorkingDirectory=/var/www/Second Brain Template
+ExecStart=/var/www/Second Brain Template/venv/bin/python -m uvicorn src.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
-EnvironmentFile=/var/www/{{PROJECT_NAME}}/.env
+EnvironmentFile=/var/www/Second Brain Template/.env
 
 [Install]
 WantedBy=multi-user.target
@@ -79,13 +79,13 @@ WantedBy=multi-user.target
 Активировать и запустить:
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable {{PROJECT_NAME}}
-sudo systemctl start {{PROJECT_NAME}}
-sudo systemctl status {{PROJECT_NAME}}
+sudo systemctl enable Second Brain Template
+sudo systemctl start Second Brain Template
+sudo systemctl status Second Brain Template
 ```
 
 ### Шаг 2: Настройка Nginx (Reverse Proxy)
-Создать файл `/etc/nginx/sites-available/{{PROJECT_NAME}}`:
+Создать файл `/etc/nginx/sites-available/Second Brain Template`:
 ```nginx
 server {
     server_name yourdomain.com;
@@ -101,7 +101,7 @@ server {
 ```
 Активировать конфигурацию:
 ```bash
-sudo ln -s /etc/nginx/sites-available/{{PROJECT_NAME}} /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/Second Brain Template /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 ```

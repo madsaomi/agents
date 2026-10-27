@@ -3,9 +3,9 @@
 <!-- Кратко опишите, что было сделано и зачем -->
 
 ### 🔗 Связанные задачи и планы:
-- **План:** [PLAN-XXX](file:///agents/plans/)
-- **Задача:** [TASK-XXX](file:///agents/tasks/active_task.md)
-- **Баг:** [BUG-XXX](file:///agents/bugs_and_fixes/) *(если применимо)*
+- **План:** [PLAN-XXX](../plans)
+- **Задача:** [TASK-XXX](../tasks/active_task.md)
+- **Баг:** [BUG-XXX](../bugs_and_fixes) *(если применимо)*
 
 ---
 

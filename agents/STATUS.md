@@ -1,8 +1,8 @@
 # 📊 Текущий статус проекта (STATUS.md)
 
-**Проект:** {{PROJECT_NAME}}  
-**Описание:** {{PROJECT_DESCRIPTION}}  
-**Технологический стек:** {{TECH_STACK}}  
+**Проект:** Second Brain Template  
+**Описание:** Универсальный шаблон долговременной памяти и регламентов для AI-агентов  
+**Технологический стек:** Python 3.9+ (stdlib), Markdown, Git, Claude Code / Cursor / Windsurf  
 **Последнее обновление:** 2026-09-20 00:06 (West Asia Standard Time)
 **Ответственный агент:** Gemini
 **Текущая фаза:** Инициализация проекта / Разработка MVP  
@@ -26,7 +26,7 @@
 ---
 
 ## 🎯 Что делается прямо сейчас (Текущий фокус):
-- См. активные шаги в 👉 **[`agents/tasks/active_task.md`](file:///agents/tasks/active_task.md)**
+- См. активные шаги в 👉 **[`agents/tasks/active_task.md`](tasks/active_task.md)**
 
 ---
 

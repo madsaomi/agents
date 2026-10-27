@@ -19,5 +19,5 @@ session_YYYY-MM-DD_NN_<agent_short_name>.md
 - `session_2026-09-18_02_auth_system.md`
 - `session_2026-09-19_01_ui_redesign.md`
 
-Шаблон для заполнения находится в: [`agents/templates/template_session_log.md`](file:///agents/templates/template_session_log.md).
-Пример заполнения можно посмотреть в: [`session_000_init_example.md`](file:///agents/history/session_000_init_example.md).
+Шаблон для заполнения находится в: [`agents/templates/template_session_log.md`](../templates/template_session_log.md).
+Пример заполнения можно посмотреть в: [`session_000_init_example.md`](session_000_init_example.md).

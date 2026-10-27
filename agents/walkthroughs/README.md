@@ -2,7 +2,7 @@
 
 > [!TIP]
 > **Приемка фичи (Acceptance Gate):**  
-> После завершения реализации любого плана из [`agents/plans/`](file:///agents/plans/) агент формирует подробный отчет о приемке по шаблону [`agents/templates/template_walkthrough.md`](file:///agents/templates/template_walkthrough.md).
+> После завершения реализации любого плана из [`agents/plans/`](../plans) агент формирует подробный отчет о приемке по шаблону [`agents/templates/template_walkthrough.md`](../templates/template_walkthrough.md).
 
 ---
 

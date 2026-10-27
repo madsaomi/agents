@@ -5,8 +5,8 @@
 **Дата завершения:** 2026-09-20 00:06  
 **Исполнитель:** Gemini (Antigravity)  
 **Приоритет:** HIGH  
-**Связанный план:** [`PLAN-002`](file:///agents/plans/plan_002_unified_cli_and_integrations.md)  
-**Связанный отчет:** [`Walkthrough 002`](file:///agents/walkthroughs/walkthrough_002_unified_cli_and_integrations.md)
+**Связанный план:** [`PLAN-002`](../../plans/plan_002_unified_cli_and_integrations.md)  
+**Связанный отчет:** [`Walkthrough 002`](../../walkthroughs/walkthrough_002_unified_cli_and_integrations.md)
 
 ---
 

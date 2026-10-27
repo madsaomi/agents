@@ -4,7 +4,7 @@
 - **Агент / Разработчик:** Gemini (Antigravity)
 - **Операционная система:** win32
 - **ID Задачи:** TASK-001
-- **Связанный план:** [PLAN-001](file:///agents/plans/plan_001_second_brain_enhancements.md)
+- **Связанный план:** [PLAN-001](../plans/plan_001_second_brain_enhancements.md)
 
 ---
 

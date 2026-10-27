@@ -12,11 +12,11 @@ AI-агенты часто наступают на одни и те же гра�
 
 ## 📝 Правило фиксации:
 1. Как только ты столкнулся с ошибкой и нашел её решение:
-2. Скопируй бланк из [`agents/templates/template_bug_report.md`](file:///agents/templates/template_bug_report.md).
+2. Скопируй бланк из [`agents/templates/template_bug_report.md`](../templates/template_bug_report.md).
 3. Создай файл `BUG_XXX_<краткое_название>.md` (например, `BUG_001_port_already_in_use.md`).
 4. Обязательно опиши:
    - **Симптом:** Точный traceback или лог.
    - **Первопричина (Root Cause):** ПОЧЕМУ возникло.
    - **Решение:** Как исправлено в коде.
    - **Правило предотвращения:** Четкий запрет или рекомендация.
-5. Ознакомься с эталоном в [`BUG_000_example.md`](file:///agents/bugs_and_fixes/BUG_000_example.md).
+5. Ознакомься с эталоном в [`BUG_000_example.md`](BUG_000_example.md).
