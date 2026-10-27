@@ -88,11 +88,11 @@
   - [x] 2.4: PostToolUse `Edit|Write` → `post_edit_lint.py` (ruff/black если найдены, иначе тихо exit 0; проблемы — additionalContext)
   - [x] 2.5: Stop → `session_log.py`: автозаготовка истории 1 раз на сессию (идемпотентно; пропускает, если агент сам уже записал сессию)
   - [x] 2.6: Тесты `tests/test_hooks.py` (17 сценариев, stdin-моки) + секция 9 в `check_integrity.py` (settings.json, события, скрипты)
-- [ ] **Этап 3: Субагенты, skills, слэш-команды**
-  - [ ] 3.1: `.claude/agents/`: planner (read-only), implementer, reviewer, test-writer, security-auditor, debugger, docs-keeper — с ограниченными `tools:` и `model:` по роли
-  - [ ] 3.2: Skills: `session-handoff`, `bug-triage`, `adr-writer`, `release-checklist` (+ синхронизация `.agents/skills/second_brain`)
-  - [ ] 3.3: `.claude/commands/`: `/plan /bug /adr /review /handoff /status` — тонкие обёртки над `brain.py`
-  - [ ] 3.4: Документировать обход бага model-frontmatter (#44385): передавать `model` явно при вызове
+- [x] **Этап 3: Субагенты, skills, слэш-команды**
+  - [x] 3.1: `.claude/agents/`: planner (read-only, opus), implementer, reviewer (opus), test-writer (haiku), security-auditor (read-only), debugger, docs-keeper (haiku) — с ограниченными `tools:` и `model:` по роли
+  - [x] 3.2: Skills `.claude/skills/`: `session-handoff`, `bug-triage`, `adr-writer`, `release-checklist`, `second-brain`; зеркало Antigravity (`.agents/skills/second_brain/`) теперь генерируется через `SYNC_MIRRORS` в `brain.py sync`
+  - [x] 3.3: `.claude/commands/`: `/plan /bug /adr /review /handoff /status` — тонкие обёртки над `brain.py` (формат проверен: frontmatter `description`, `$ARGUMENTS`)
+  - [x] 3.4: Обход бага model-frontmatter (#44385) задокументирован в `agents/bugs_and_fixes/BUG_001_subagent_model_frontmatter_ignored.md`; тесты — `tests/test_claude_config.py`
 - [ ] **Этап 4: MCP-сервер `brain-mcp`**
   - [ ] 4.1: Инструменты `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session` (обёртка над теми же функциями tools/, формат файлов не ломается)
   - [ ] 4.2: `.mcp.json` с пресетами (filesystem, GitHub, PostgreSQL read-only, Context7, Playwright, Sentry)

@@ -275,6 +275,11 @@ SYNC_SPECS = [
     (SYNC_TEMPLATES_DIR / "copilot-instructions.md.tpl", PROJECT_ROOT / ".github" / "copilot-instructions.md"),
     (SYNC_TEMPLATES_DIR / "second-brain.mdc.tpl", PROJECT_ROOT / ".cursor" / "rules" / "second-brain.mdc"),
 ]
+# Зеркалирование скиллов между экосистемами (канон → зеркало), без подстановки {{CORE_RULES}}
+SYNC_MIRRORS = [
+    (PROJECT_ROOT / ".claude" / "skills" / "second-brain" / "SKILL.md",
+     AGENTS_DIR.parent / ".agents" / "skills" / "second_brain" / "SKILL.md"),
+]
 
 
 def _read_norm(path: Path) -> str:
@@ -293,12 +298,14 @@ def _write_preserve_eol(path: Path, text: str):
 
 
 def render_sync_configs():
-    """Возвращает список (шаблон, цель, отрендеренное содержимое)."""
+    """Возвращает список (шаблон-источник, цель, отрендеренное содержимое)."""
     core = _read_norm(SYNC_CORE)
     rendered = []
     for tpl, target in SYNC_SPECS:
         body = _read_norm(tpl)
         rendered.append((tpl, target, body.replace("{{CORE_RULES}}", core)))
+    for src, target in SYNC_MIRRORS:
+        rendered.append((src, target, _read_norm(src)))
     return rendered
 
 
@@ -328,20 +335,20 @@ def sync_tools(check: bool = False) -> int:
 
     if check:
         if drifted:
-            print(f"{RED}❌ sync --check: конфиги разошлись с agents/rules/CORE_RULES.md:{RESET}")
+            print(f"{RED}❌ sync --check: конфиги разошлись с каноном:{RESET}")
             for rel in drifted:
                 print(f"   • {rel}")
             print(f"   Запусти: {GREEN}python brain.py sync{RESET}")
             return 1
-        print(f"{GREEN}✅ sync --check: все {len(SYNC_SPECS)} конфигов соответствуют канону.{RESET}")
+        print(f"{GREEN}✅ sync --check: все {len(SYNC_SPECS)} конфигов и {len(SYNC_MIRRORS)} зеркало соответствуют канону.{RESET}")
         return 0
 
     if not drifted:
-        print(f"{GREEN}✅ Конфиги уже актуальны ({len(SYNC_SPECS)} шт.), дрейф не обнаружен.{RESET}")
+        print(f"{GREEN}✅ Файлы уже актуальны ({len(SYNC_SPECS)} конфигов + {len(SYNC_MIRRORS)} зеркало), дрейф не обнаружен.{RESET}")
         return 0
     for rel in written:
         print(f"  ✓ Сгенерирован: {rel}")
-    print(f"{GREEN}🎉 Синхронизировано файлов: {len(written)}. Источник: agents/rules/CORE_RULES.md{RESET}")
+    print(f"{GREEN}🎉 Синхронизировано файлов: {len(written)}. Источник: agents/rules/CORE_RULES.md + .claude/skills/{RESET}")
     return 0
 
 # -----------------------------------------------------------------------------

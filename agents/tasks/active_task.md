@@ -1,6 +1,6 @@
 # 📋 Активная задача: TASK-003 — Исполняемые правила (sync, хуки, субагенты, MCP)
 
-**Статус:** 🔵 IN_PROGRESS (Этапы 0–2 ✅ → Этап 3 ⏭: субагенты/skills/команды)  
+**Статус:** 🔵 IN_PROGRESS (Этапы 0–3 ✅ → Этап 4 ⏭: brain-mcp)  
 **Дата создания:** 2026-10-27  
 **Исполнитель:** MiMo (OpenCode)  
 **Приоритет:** HIGH  
@@ -30,7 +30,9 @@
 - [x] **Этап 2: Хуки Claude Code**
   - [x] `.claude/settings.json` +4 скрипта в `agents/tools/hooks/` (gate, inject, lint, history)
   - [x] `tests/test_hooks.py` — 17 сценариев; секция 9 в `check_integrity.py`
-- [ ] **Этап 3: Субагенты, skills, слэш-команды**
+- [x] **Этап 3: Субагенты, skills, слэш-команды**
+  - [x] `.claude/agents/` — 7 ролей; `.claude/skills/` — 5 скиллов (зеркало Antigravity через sync); `.claude/commands/` — 6 команд
+  - [x] `tests/test_claude_config.py` + BUG-001 (model frontmatter)
 - [ ] **Этап 4: brain-mcp** (optional extra `[mcp]` — решено)
 - [ ] **Этап 5: Пресеты django-drf / aiogram-bot + пакет**
 - [ ] **Этап 6: Поиск FTS5 + детектор устаревания**
