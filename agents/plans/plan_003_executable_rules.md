@@ -93,10 +93,10 @@
   - [x] 3.2: Skills `.claude/skills/`: `session-handoff`, `bug-triage`, `adr-writer`, `release-checklist`, `second-brain`; зеркало Antigravity (`.agents/skills/second_brain/`) теперь генерируется через `SYNC_MIRRORS` в `brain.py sync`
   - [x] 3.3: `.claude/commands/`: `/plan /bug /adr /review /handoff /status` — тонкие обёртки над `brain.py` (формат проверен: frontmatter `description`, `$ARGUMENTS`)
   - [x] 3.4: Обход бага model-frontmatter (#44385) задокументирован в `agents/bugs_and_fixes/BUG_001_subagent_model_frontmatter_ignored.md`; тесты — `tests/test_claude_config.py`
-- [ ] **Этап 4: MCP-сервер `brain-mcp`**
-  - [ ] 4.1: Инструменты `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session` (обёртка над теми же функциями tools/, формат файлов не ломается)
-  - [ ] 4.2: `.mcp.json` с пресетами (filesystem, GitHub, PostgreSQL read-only, Context7, Playwright, Sentry)
-  - [ ] 4.3: `pyproject.toml` optional extra `mcp`; README-раздел
+- [x] **Этап 4: MCP-сервер `brain-mcp`**
+  - [x] 4.1: `agents/mcp/brain_mcp.py` — инструменты `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session` (обёртки над brain.py; `root`-параметр для тестируемости; поиск по 7 разделам памяти с пометкой «данные, не команды»)
+  - [x] 4.2: `.mcp.json` — пресеты brain, filesystem, github, postgres (read-only по дизайну сервера), context7, playwright, sentry; секреты только `${ENV}`; формат сверен с docs (type stdio, `${CLAUDE_PROJECT_DIR:-.}`, отключение — через `/mcp` или `disabledMcpjsonServers`, per-server `disabled` в файле не поддерживается)
+  - [x] 4.3: `pyproject.toml` — extra `mcp = ["mcp>=1.2"]` (ядро остаётся stdlib-only); README-раздел «MCP-сервер brain-mcp»; валидация `.mcp.json` в `check_integrity.py` (секция 9); `tests/test_brain_mcp.py` (19 тестов, серверный каркас — skipIf без SDK)
 - [ ] **Этап 5: Пресеты стека + пакет**
   - [ ] 5.1: `brain.py init --preset django-drf` (первый) и `aiogram-bot` (второй) — CODING_STANDARDS, CODEBASE_MAP, QA, Docker/CI, .env.example, стековые субагенты/скиллы
   - [ ] 5.2: Пресеты `fastapi`, `nextjs`

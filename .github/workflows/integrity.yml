@@ -22,7 +22,7 @@ jobs:
 
       - name: Compile Python Tools
         run: |
-          python -m py_compile agents/tools/*.py brain.py
+          python -m py_compile agents/tools/*.py agents/tools/hooks/*.py agents/mcp/*.py brain.py
 
       - name: Run Unit Tests
         run: |

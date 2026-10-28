@@ -285,6 +285,38 @@ def run_integrity_check(fix: bool = False):
         errors_count += 1
     log_check("Скрипты хуков agents/tools/hooks/", not missing_hooks, f"Нет: {missing_hooks}")
 
+    # MCP-сервер brain-mcp (опциональный extra [mcp])
+    mcp_server_path = AGENTS_DIR / "mcp" / "brain_mcp.py"
+    if not mcp_server_path.is_file():
+        errors_count += 1
+    log_check("MCP-сервер agents/mcp/brain_mcp.py", mcp_server_path.is_file(), "Файл отсутствует")
+
+    mcpjson = PROJECT_ROOT / ".mcp.json"
+    if mcpjson.is_file():
+        try:
+            import json as _json
+            cfg = _json.loads(mcpjson.read_text(encoding="utf-8"))
+            servers = cfg.get("mcpServers", {})
+            ok = "brain" in servers
+            if not ok:
+                errors_count += 1
+            log_check(".mcp.json (валидный JSON, сервер brain)", ok, "Сервер 'brain' не прописан")
+            # секреты не хранятся в явном виде
+            inline_secrets = [
+                f"{name}.{key}" for name, srv in servers.items()
+                for key, val in (srv.get("env") or {}).items()
+                if val and not str(val).startswith("${")
+            ]
+            if inline_secrets:
+                errors_count += 1
+            log_check(".mcp.json (секреты только через ${ENV})", not inline_secrets, f"Явные значения: {inline_secrets}")
+        except Exception as e:
+            errors_count += 1
+            log_check(".mcp.json (JSON валиден)", False, str(e))
+    else:
+        warnings_count += 1
+        log_check(".mcp.json", False, "Конфиг MCP-пресетов не найден", is_warning=True)
+
     # Итоговый вывод
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")
     if errors_count == 0:

@@ -18,6 +18,7 @@ python brain.py plan "Feature Name" # 📐 Создать план реализ�
 python brain.py bug "Error Title"   # 🐛 Зафиксировать ошибку в базе знаний
 python brain.py adr "Choice Title"  # 🏛️ Зафиксировать архитектурное решение (ADR)
 python brain.py check               # 🧠 Проверить целостность Второго Мозга (--fix для автопочинки)
+python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md
 python brain.py dump                # 📦 Скопировать контекст в буфер для веб-чатов (ChatGPT/Claude)
 python brain.py end                 # 🏁 Завершить сессию и сохранить историю
 ```
@@ -95,6 +96,36 @@ python agents/tools/install_hooks.py
    python agents/tools/end_session.py
    ```
    Автоматически определяет выполненные чекбоксы `[x]`, формирует отчет в `agents/history/` и обновляет дату в `STATUS.md`.
+
+6. **Синхронизация конфигов AI-инструментов:**
+   ```bash
+   python brain.py sync          # сгенерировать CLAUDE.md, .cursorrules, .windsurfrules и др.
+   python brain.py sync --check  # только проверить дрейф (exit 1 — в CI)
+   ```
+   `CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md` и `.cursor/rules/second-brain.mdc` генерируются из единого канона `agents/rules/CORE_RULES.md`. **Правь только канон**, сгенерированные файлы не редактируются вручную.
+
+---
+
+## 🧩 MCP-сервер `brain-mcp` (опционально)
+
+Инструменты памяти как функции для MCP-клиентов (Claude Code и др.) — агент вызывает их вместо ручной правки markdown, формат файлов не ломается:
+
+| Инструмент | Что делает |
+|---|---|
+| `get_status` | Дашборд состояния проекта |
+| `create_plan` | Создать `PLAN-XXX` (Plan-First) |
+| `log_bug` | Создать `BUG-XXX` в `agents/bugs_and_fixes/` |
+| `search_memory` | Поиск по памяти (баги, история, ADR, планы) |
+| `complete_task` | Отметить шаг `[x]` в `active_task.md` |
+| `end_session` | Создать запись сессии в `agents/history/` |
+
+**Установка** (требует Python 3.11+, сама опциональна — ядро шаблона остаётся stdlib-only):
+```bash
+pip install ".[mcp]"        # или: pip install mcp
+python agents/mcp/brain_mcp.py   # запуск сервера (stdio)
+```
+
+В `.mcp.json` в корне лежат пресеты подключения: **brain** (этот сервер), **filesystem**, **github**, **postgres** (read-only), **context7** (документация библиотек), **playwright**, **sentry**. Claude Code запросит подтверждение проектных серверов при старте; отключи ненужные через `/mcp`. Секреты задаются только через переменные окружения (`${GITHUB_TOKEN}` и т.п.) — в репозиторий значения не попадают.
 
 ---
 
