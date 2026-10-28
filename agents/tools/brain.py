@@ -13,6 +13,10 @@
     python agents/tools/brain.py check [--fix]       - Проверить целостность (с авто-исправлением)
     python agents/tools/brain.py sync [--check]      - Сгенерировать конфиги AI-инструментов из CORE_RULES.md
     python agents/tools/brain.py search "<query>"    - Поиск по памяти (FTS5; --reindex — переиндексировать)
+    python agents/tools/brain.py claim <task>        - Забрать задачу (лок для параллельных агентов; --worktree)
+    python agents/tools/brain.py release <task>      - Освободить задачу (--worktree — удалить worktree)
+    python agents/tools/brain.py claims              - Показать активные блокировки задач
+    python agents/tools/brain.py dump [--budget N]   - Контекст в буфер обмена (N — лимит токенов)
     python agents/tools/brain.py presets             - Показать доступные пресеты стека
     python agents/tools/brain.py preset <имя>        - Применить пресет стека (django-drf, aiogram-bot, ...)
     python agents/tools/brain.py upgrade             - Обновить шаблоны, не затирая данные пользователя
@@ -66,11 +70,12 @@ PRESETS_SOURCE_DIR = SCRIPT_DIR.parent / "presets"
 # Импортируем существующие утилиты
 sys.path.insert(0, str(SCRIPT_DIR))
 from check_integrity import run_integrity_check
-from dump_context import build_context_dump, copy_to_clipboard
+from dump_context import build_context_dump, copy_to_clipboard, estimate_tokens
 from new_plan import create_plan, slugify
 from end_session import end_session, extract_completed_tasks_from_active
 from init_project import init_project
 import search as memory_search
+import locks as task_locks
 
 # -----------------------------------------------------------------------------
 # Вспомогательные функции нумерации
@@ -541,7 +546,9 @@ def main():
     task_parser.add_argument("--agent", help="Исполнитель", default="AI Assistant")
 
     # dump
-    subparsers.add_parser("dump", help="Собрать контекст проекта в буфер обмена для AI-чатов")
+    dump_parser = subparsers.add_parser("dump", help="Собрать контекст проекта в буфер обмена для AI-чатов")
+    dump_parser.add_argument("--budget", type=int, default=None,
+                             help="Лимит токенов: сжать контекст под него (автосуммаризация + отсечение низкоприоритетного)")
 
     # check
     check_parser = subparsers.add_parser("check", help="Запустить валидатор целостности Второго Мозга")
@@ -556,6 +563,23 @@ def main():
     search_parser.add_argument("query", nargs="?", help='Поисковый запрос (слова или "фраза")')
     search_parser.add_argument("--reindex", action="store_true", help="Переиндексировать память и выйти")
     search_parser.add_argument("--limit", type=int, default=10, help="Максимум результатов (по умолчанию 10)")
+
+    # claim / release / claims — блокировки задач для параллельных агентов
+    claim_parser = subparsers.add_parser("claim", help="Забрать задачу (лок для параллельной работы агентов)")
+    claim_parser.add_argument("task", help="ID задачи (напр. TASK-003)")
+    claim_parser.add_argument("--agent", default="", help="Имя агента (по умолчанию — USER)")
+    claim_parser.add_argument("--note", default="", help="Заметка о работе")
+    claim_parser.add_argument("--force", action="store_true", help="Перехватить чужую/мёртвую блокировку")
+    claim_parser.add_argument("--worktree", nargs="?", const=True, default=None,
+                              help="Создать git worktree для задачи (опционально — путь)")
+
+    release_parser = subparsers.add_parser("release", help="Освободить задачу")
+    release_parser.add_argument("task", help="ID задачи (напр. TASK-003)")
+    release_parser.add_argument("--agent", default="", help="Имя агента")
+    release_parser.add_argument("--force", action="store_true", help="Снять чужую блокировку")
+    release_parser.add_argument("--worktree", action="store_true", help="Удалить worktree задачи (если чистый)")
+
+    subparsers.add_parser("claims", help="Показать активные блокировки задач")
 
     # presets / preset
     subparsers.add_parser("presets", help="Показать доступные пресеты стека")
@@ -639,11 +663,17 @@ def main():
         print(f"📋 Карточка задачи создана: {MAGENTA}{rel}{RESET}")
 
     elif args.command == "dump":
-        dump = build_context_dump()
+        dump = build_context_dump(root=PROJECT_ROOT, budget=args.budget)
         dump_file = SCRIPT_DIR / "context_dump.md"
         dump_file.write_text(dump, encoding="utf-8")
         copied = copy_to_clipboard(dump)
-        print(f"✓ Контекст сформирован ({len(dump)} символов).")
+        est = estimate_tokens(dump)
+        if args.budget:
+            print(f"✓ Контекст сформирован под бюджет {args.budget} токенов "
+                  f"(оценка ~{est}, символов {len(dump)}).")
+        else:
+            print(f"✓ Контекст сформирован ({len(dump)} символов, ~{est} токенов). "
+                  f"Лимит: --budget N")
         if copied:
             print(f"{GREEN}🎉 Контекст скопирован в буфер обмена! Нажмите Ctrl+V в чате AI.{RESET}")
         else:
@@ -666,6 +696,40 @@ def main():
         results = memory_search.search_memory(args.query, limit=args.limit, root=PROJECT_ROOT)
         print(memory_search.format_results(args.query, results))
         sys.exit(0)
+
+    elif args.command == "claim":
+        ok, msg = task_locks.claim_task(
+            args.task, agent=args.agent, note=args.note, force=args.force,
+            worktree=args.worktree, root=PROJECT_ROOT,
+        )
+        print(msg)
+        sys.exit(0 if ok else 1)
+
+    elif args.command == "release":
+        ok, msg = task_locks.release_task(
+            args.task, agent=args.agent, force=args.force,
+            remove_worktree=args.worktree, root=PROJECT_ROOT,
+        )
+        print(msg)
+        sys.exit(0 if ok else 1)
+
+    elif args.command == "claims":
+        claims = task_locks.list_claims(root=PROJECT_ROOT)
+        if not claims:
+            print("Свободно: активных блокировок задач нет.")
+        else:
+            print(f"{BOLD}🔒 Активные блокировки задач ({len(claims)}):{RESET}")
+            for c in claims:
+                mark = {"active": f"{GREEN}🟢{RESET}", "stale": f"{RED}💀{RESET}",
+                        "unknown": f"{YELLOW}❓{RESET}"}.get(c.get("status"), "❓")
+                line = (f"  {mark} {c.get('task', '?'):<14} {c.get('agent', '?'):<16} "
+                        f"PID {c.get('pid', '?')} с {c.get('created', '?')}")
+                if c.get("worktree"):
+                    line += f"\n       worktree: {c['worktree']}"
+                if c.get("note"):
+                    line += f"\n       заметка: {c['note']}"
+                print(line)
+            print(f"\n{GREEN}🟢{RESET} жив · {RED}💀{RESET} владелец мёртв (перехватится) · {YELLOW}❓{RESET} статус неизвестен")
 
     elif args.command == "presets":
         presets = list_presets()

@@ -1,6 +1,6 @@
 # 📋 Активная задача: TASK-003 — Исполняемые правила (sync, хуки, субагенты, MCP)
 
-**Статус:** 🔵 IN_PROGRESS (Этапы 0–6 ✅ → Этап 7 ⏭: мультиагентность: claim/release, dump --budget)  
+**Статус:** 🔵 IN_PROGRESS (Этапы 0–7 ✅ → Этап 8 ⏭: документирование, walkthrough, фиксация сессии)  
 **Дата создания:** 2026-10-27  
 **Исполнитель:** MiMo (OpenCode)  
 **Приоритет:** HIGH  
@@ -44,7 +44,10 @@
   - [x] `agents/tools/search.py` + `brain.py search [--reindex]` — индекс `.brain_index.db` (gitignore), авто-индексация, префикс/фразы/кириллица, snippet+bm25
   - [x] Секция 10 `check_integrity` — устаревание `CODEBASE_MAP.md` (git, fail-soft); сама карта обновлена
   - [x] MCP `search_memory` связан с FTS5 (fallback — линейный поиск); `tests/test_search.py` (19 тестов)
-- [ ] **Этап 7: Мультиагентность и контекст**
+- [x] **Этап 7: Мультиагентность и контекст**
+  - [x] `brain.py claim/release/claims` — атомарные локи + heartbeat-TTL + git worktree; `tests/test_claim.py` (14)
+  - [x] `dump --budget N` — автосуммаризация/приоритетное отсечение под лимит токенов; `tests/test_dump_budget.py` (9)
+  - [x] 7.3 prompt-injection — уже в каноне с Этапа 1 (п. 10)
 - [ ] **Этап 8: Документирование и сдача**
 
 ---

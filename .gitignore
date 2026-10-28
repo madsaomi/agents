@@ -48,3 +48,4 @@ scratch/
 tmp/
 .brain_index.db
 brain_index.db*
+agents/tasks/.locks/

@@ -20,10 +20,12 @@ python brain.py adr "Choice Title"  # 🏛️ Зафиксировать арх�
 python brain.py check               # 🧠 Проверить целостность Второго Мозга (--fix для автопочинки)
 python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md
 python brain.py search "jwt"        # 🔍 Полнотекстовый поиск по памяти (SQLite FTS5, --reindex)
+python brain.py claim TASK-003      # 🔒 Забрать задачу (параллельным агентам — сюда не лезть)
+python brain.py release TASK-003    # 🔓 Освободить задачу
 python brain.py presets             # 🧩 Показать пресеты стека (django-drf, aiogram-bot, fastapi, nextjs)
 python brain.py preset <имя>        # 🧩 Применить пресет стека к проекту
 python brain.py upgrade             # ⬆️ Обновить шаблоны, не затирая свои правки и историю
-python brain.py dump                # 📦 Скопировать контекст в буфер для веб-чатов (ChatGPT/Claude)
+python brain.py dump [--budget N]   # 📦 Контекст в буфер для веб-чатов (N — лимит токенов)
 python brain.py end                 # 🏁 Завершить сессию и сохранить историю
 ```
 
@@ -147,6 +149,27 @@ python agents/mcp/brain_mcp.py   # запуск сервера (stdio)
 ```
 
 В `.mcp.json` в корне лежат пресеты подключения: **brain** (этот сервер), **filesystem**, **github**, **postgres** (read-only), **context7** (документация библиотек), **playwright**, **sentry**. Claude Code запросит подтверждение проектных серверов при старте; отключи ненужные через `/mcp`. Секреты задаются только через переменные окружения (`${GITHUB_TOKEN}` и т.п.) — в репозиторий значения не попадают.
+
+---
+
+## 🤝 Параллельная работа агентов (`claim` / `release`)
+
+Несколько сессий/агентов работают над одним проектом без конфликтов — задача «забирается» локом:
+
+```bash
+python brain.py claim TASK-003 --note "пишу парсер"   # 🔒 забрать задачу
+python brain.py claim TASK-003                         # повторно = обновить heartbeat (удержание)
+python brain.py claims                                 # список активных блокировок
+python brain.py release TASK-003                       # 🔓 освободить
+```
+
+- **Атомарность:** лок создаётся через `O_CREAT|O_EXCL` — из параллельных claim выигрывает ровно один.
+- **Отказ по-человечески:** второй агент видит имя владельца, PID и подсказку `--force`.
+- **Протухание:** активность держится на heartbeat (повторный claim) с TTL 45 минут (`BRAIN_LOCK_TTL_MINUTES`); процесс команды `claim` завершается сразу, поэтому живость определяется не PID, а свежестью heartbeat. Протухший лок перехватывается без `--force`.
+- **Git worktree** для изоляции: `python brain.py claim TASK-003 --worktree` создаёт `worktree` + ветку `task/task-003`; `release TASK-003 --worktree` удаляет worktree (только если он чистый, иначе — явный `--force`).
+- Локи лежат в `agents/tasks/.locks/` (в `.gitignore` — локальное состояние, в репозиторий не попадает).
+
+**Сжатие контекста под лимит:** `python brain.py dump --budget 4000` — при превышении секции сначала автосуммируются (остаются заголовки/чек-листы/таблицы), затем отбрасываются низкоприоритетные (глоссарий → правила → PRD → …), ядро «статус + активная задача» удерживается до крайнего случая. Оценка токенов грубая (~3 символа/токен для смешанного ru/en markdown).
 
 ---
 
