@@ -30,7 +30,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 AGENTS_DIR = SCRIPT_DIR.parent
 PROJECT_ROOT = AGENTS_DIR.parent
 
-def log_check(name: str, passed: bool, details: str = "", is_warning: bool = False):
+def log_check(name: str, passed: bool, details: str = "", is_warning: bool = False,
+              file: str = None):
     if passed:
         status = f"{GREEN}[OK]{RESET}"
     elif is_warning:
@@ -42,6 +43,13 @@ def log_check(name: str, passed: bool, details: str = "", is_warning: bool = Fal
     if details and not passed:
         color = YELLOW if is_warning else RED
         print(f"       {color}--> {details}{RESET}")
+    # GitHub Actions: дублируем проблему аннотацией, чтобы она была видна в PR
+    if not passed and os.environ.get("GITHUB_ACTIONS") == "true":
+        msg = name + (f": {details}" if details else "")
+        level = "warning" if is_warning else "error"
+        loc = f" file={file}" if file else ""
+        # workflow-команды не переживают переводы строк
+        print(f"::{level}{loc}::{msg.replace(chr(10), ' ')}")
 
 def run_integrity_check(fix: bool = False):
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")
@@ -96,7 +104,8 @@ def run_integrity_check(fix: bool = False):
     root_exists = root_agents_md.is_file()
     if not root_exists:
         warnings_count += 1
-        log_check("Корневой AGENTS.md в корне проекта", False, "Рекомендуется создать AGENTS.md в корне для IDE/AI", is_warning=True)
+        log_check("Корневой AGENTS.md в корне проекта", False, "Рекомендуется создать AGENTS.md в корне для IDE/AI",
+                  is_warning=True, file="AGENTS.md")
     else:
         log_check("Корневой AGENTS.md в корне проекта", True)
 
@@ -132,7 +141,8 @@ def run_integrity_check(fix: bool = False):
         exists = p.is_file() and p.stat().st_size > 20
         if not exists:
             warnings_count += 1
-            log_check(f"Конфиг {name}", False, f"Файл {p.name} не найден (рекомендуется для полноты поддержки)", is_warning=True)
+            log_check(f"Конфиг {name}", False, f"Файл {p.name} не найден (рекомендуется для полноты поддержки)",
+                      is_warning=True, file=p.relative_to(PROJECT_ROOT).as_posix())
         else:
             log_check(f"Конфиг {name}", True)
 
@@ -276,7 +286,8 @@ def run_integrity_check(fix: bool = False):
             log_check("Хуки .claude/settings.json (JSON валиден)", False, str(e))
     else:
         warnings_count += 1
-        log_check("Хуки .claude/settings.json", False, "Файл хуков не найден (исполняемые правила не активны)", is_warning=True)
+        log_check("Хуки .claude/settings.json", False, "Файл хуков не найден (исполняемые правила не активны)",
+                  is_warning=True, file=".claude/settings.json")
 
     hooks_dir = AGENTS_DIR / "tools" / "hooks"
     expected_hooks = ["pre_tool_gate.py", "inject_context.py", "post_edit_lint.py", "session_log.py"]
@@ -315,7 +326,7 @@ def run_integrity_check(fix: bool = False):
             log_check(".mcp.json (JSON валиден)", False, str(e))
     else:
         warnings_count += 1
-        log_check(".mcp.json", False, "Конфиг MCP-пресетов не найден", is_warning=True)
+        log_check(".mcp.json", False, "Конфиг MCP-пресетов не найден", is_warning=True, file=".mcp.json")
 
     # Секция 10: актуальность CODEBASE_MAP.md (детектор устаревания, fail-soft)
     # Если код менялся после последнего обновления карты кодовой базы — предупреждаем.
@@ -344,6 +355,7 @@ def run_integrity_check(fix: bool = False):
                     False,
                     "Код менялся позже последнего обновления карты кодовой базы — обнови её (см. agents/architecture/CODEBASE_MAP.md)",
                     is_warning=True,
+                    file="agents/architecture/CODEBASE_MAP.md",
                 )
             elif code_ts is not None:
                 log_check("CODEBASE_MAP.md актуален", True, "Карта обновлялась не старее последних изменений кода")
@@ -352,6 +364,30 @@ def run_integrity_check(fix: bool = False):
     else:
         warnings_count += 1
         log_check("CODEBASE_MAP.md", False, "Карта кодовой базы отсутствует", is_warning=True)
+
+    # Секция 11: секреты в файлах (PLAN-004, Этап 1) — сканирует tracked+untracked
+    # файлы; ловится и в CI, и в git pre-commit (он запускает этот скрипт)
+    try:
+        import secret_scan
+        findings = secret_scan.scan_project(root=PROJECT_ROOT)
+    except Exception as e:
+        findings = None
+        warnings_count += 1
+        log_check("Секреты в файлах", False, f"сканер недоступен: {e}", is_warning=True)
+    if findings is not None:
+        if findings:
+            errors_count += 1
+            preview = "; ".join(f"{f['file']}:{f['line']} — {f['kind']}" for f in findings[:5])
+            if len(findings) > 5:
+                preview += f" …и ещё {len(findings) - 5}"
+            log_check(
+                "Секреты в файлах (secret_scan)",
+                False,
+                f"найдено {len(findings)}: {preview}. Убери секрет или отметь файл маркером `secretscan: off`",
+                file=findings[0]["file"],
+            )
+        else:
+            log_check("Секреты в файлах (secret_scan)", True, "")
 
     # Итоговый вывод
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")

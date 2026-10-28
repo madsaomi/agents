@@ -1,62 +1,31 @@
-# 📋 Активная задача: TASK-003 — Исполняемые правила (sync, хуки, субагенты, MCP)
+# 📋 Активная задача: TASK-004 — Быстрые победы (секрет-сканер, stats, GitHub-аннотации, tour)
 
-**Статус:** ✅ COMPLETED (Этапы 0–8 выполнены, сдан в `walkthrough_003`)  
-**Дата создания:** 2026-10-27  
+**Статус:** ✅ COMPLETED (Этапы 1–4 выполнены)  
+**Дата создания:** 2026-10-28  
 **Исполнитель:** MiMo (OpenCode)  
-**Приоритет:** HIGH  
-**Связанный план:** [`PLAN-003`](../plans/plan_003_executable_rules.md)  
+**Приоритет:** MEDIUM  
+**Связанный план:** [`PLAN-004`](../plans/plan_004_quick_wins.md)  
+**Предыдущая задача:** [TASK-003 ✅](archive/task_003_completed.md) (PLAN-003 — см. `walkthrough_003_executable_rules.md`)
 
 ---
 
 ## 🎯 Цель задачи
-Превратить markdown-правила в исполняемый инструмент: единый источник правил + `brain.py sync`, хуки Claude Code, субагенты/skills/команды, MCP-сервер `brain-mcp`, пресеты стека, поиск по памяти. Согласовано с заказчиком 2026-10-27.
+Закрыть четыре недоработки «малой кровью» после PLAN-003: секрет-сканер для всех файлов (не только `.mcp.json`), команда-дашборд `brain stats`, GitHub-аннотации в `check_integrity` для PR, интерактивный `brain tour` для нового пользователя. Направление утверждено заказчиком 2026-10-28.
 
 ---
 
 ## 📌 Пошаговый чек-лист выполнения:
 
-- [x] **Этап 0: Починка базы + тесты**
-  - [x] 0.1: Заменить `file:///` → относительные ссылки (54 ссылки, 23 файла)
-  - [x] 0.2: Валидатор считает `file:///` устаревшим форматом (WARN)
-  - [x] 0.3: Удалён тестовый мусор `WT_001_testovyy_walkthrough.md`
-  - [x] 0.4: `tests/test_second_brain.py` — 6 тестов (ссылки, integrity, brain CLI, плейсхолдеры)
-  - [x] 0.5: CI `integrity.yml` — добавлен `python -m unittest discover -s tests`
-  - [x] 0.6: Плейсхолдеры заполнены через `init_project.py` — 0 ошибок / 0 WARN
-- [x] **Этап 1: Единый источник правил + `brain.py sync`**
-  - [x] 1.1: Канон `agents/rules/CORE_RULES.md` + шаблоны-обёртки `agents/templates/sync/`
-  - [x] 1.2: `brain.py sync` (рендер 5 конфигов, сохранение EOL)
-  - [x] 1.3: `brain.py sync --check` + шаг в CI + `tests/test_sync.py`
-  - [x] 1.4: Сверка форматов `.claude/` с документацией (официальный hooks reference)
-- [x] **Этап 2: Хуки Claude Code**
-  - [x] `.claude/settings.json` +4 скрипта в `agents/tools/hooks/` (gate, inject, lint, history)
-  - [x] `tests/test_hooks.py` — 17 сценариев; секция 9 в `check_integrity.py`
-- [x] **Этап 3: Субагенты, skills, слэш-команды**
-  - [x] `.claude/agents/` — 7 ролей; `.claude/skills/` — 5 скиллов (зеркало Antigravity через sync); `.claude/commands/` — 6 команд
-  - [x] `tests/test_claude_config.py` + BUG-001 (model frontmatter)
-- [x] **Этап 4: brain-mcp**
-  - [x] `agents/mcp/brain_mcp.py` — 6 инструментов (SDK optional, skipIf в тестах)
-  - [x] `.mcp.json` — 7 пресетов, секреты `${ENV}`; `pyproject.toml` extra `[mcp]`; README; `tests/test_brain_mcp.py`
-- [x] **Этап 5: Пресеты django-drf / aiogram-bot + пакет**
-  - [x] `agents/presets/` — 4 пресета (django-drf, aiogram-bot, fastapi, nextjs) с агентами и скиллами
-  - [x] `brain.py presets/preset/init --preset/upgrade` + `tests/test_presets.py` (17 тестов)
-  - [x] Упаковка: entry point `brain`, package-data, CI-матрица 3.9/3.11/3.13
-- [x] **Этап 6: Поиск FTS5 + детектор устаревания**
-  - [x] `agents/tools/search.py` + `brain.py search [--reindex]` — индекс `.brain_index.db` (gitignore), авто-индексация, префикс/фразы/кириллица, snippet+bm25
-  - [x] Секция 10 `check_integrity` — устаревание `CODEBASE_MAP.md` (git, fail-soft); сама карта обновлена
-  - [x] MCP `search_memory` связан с FTS5 (fallback — линейный поиск); `tests/test_search.py` (19 тестов)
-- [x] **Этап 7: Мультиагентность и контекст**
-  - [x] `brain.py claim/release/claims` — атомарные локи + heartbeat-TTL + git worktree; `tests/test_claim.py` (14)
-  - [x] `dump --budget N` — автосуммаризация/приоритетное отсечение под лимит токенов; `tests/test_dump_budget.py` (9)
-  - [x] 7.3 prompt-injection — уже в каноне с Этапа 1 (п. 10)
-- [x] **Этап 8: Документирование и сдача**
-  - [x] `STATUS.md`, `README.md`, `CODEBASE_MAP.md` актуализированы
-  - [x] `walkthrough_003_executable_rules.md` — отчёт о сдаче
-  - [x] Фиксация сессии в `agents/history/` (append-only)
+- [x] **Этап 1: Секрет-сканер** (`secret_scan.py` + секция 11 `check_integrity`)
+- [x] **Этап 2: `brain.py stats`** (счётчики памяти, битые ссылки, устаревание, локи, `--json`)
+- [x] **Этап 3: GitHub-аннотации + `brain.py tour`**
+- [x] **Этап 4: Тесты, документирование, сдача**
 
 ---
 
 ## 🧪 Критерии готовности (Definition of Done):
-1. `check_integrity.py` — 0 ошибок, 0 WARN, битых `file:///` нет.
-2. Тесты проходят в CI.
-3. Правило «без плана нет кода» физически неисполнимо (PreToolUse-хук отклоняет через `permissionDecision: "deny"`, контекст — через `additionalContext`).
-4. Все конфиги тулс генерируются через `sync`, дрейф ловится CI.
+1. Секрет в любом git-трекаемом файле → `check_integrity` FAIL и отказ pre-commit коммита; плейсхолдеры (`${ENV}`, `.env.example`) не ловятся.
+2. `python brain.py stats [--json]` — корректный дашборд памяти; битые ссылки обнаруживаются.
+3. `GITHUB_ACTIONS=true` → вывод `::error`/`::warning file=…`; локально вывод не меняется.
+4. `python brain.py tour [--list]` — гайд по всем возможностям.
+5. Тесты зелёные (117 + новые), `check_integrity` — 0/0, `sync --check` чист; README/CODEBASE_MAP/STATUS обновлены.

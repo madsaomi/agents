@@ -18,6 +18,8 @@ python brain.py plan "Feature Name" # 📐 Создать план реализ�
 python brain.py bug "Error Title"   # 🐛 Зафиксировать ошибку в базе знаний
 python brain.py adr "Choice Title"  # 🏛️ Зафиксировать архитектурное решение (ADR)
 python brain.py check               # 🧠 Проверить целостность Второго Мозга (--fix для автопочинки)
+python brain.py stats [--json]      # 📊 Дашборд здоровья памяти (битые ссылки, устаревшее, локи)
+python brain.py tour [--list]       # 🧭 Интерактивный гид для нового пользователя
 python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md
 python brain.py search "jwt"        # 🔍 Полнотекстовый поиск по памяти (SQLite FTS5, --reindex)
 python brain.py claim TASK-003      # 🔒 Забрать задачу (параллельным агентам — сюда не лезть)
@@ -28,6 +30,8 @@ python brain.py upgrade             # ⬆️ Обновить шаблоны, н
 python brain.py dump [--budget N]   # 📦 Контекст в буфер для веб-чатов (N — лимит токенов)
 python brain.py end                 # 🏁 Завершить сессию и сохранить историю
 ```
+
+> 🧭 **Новичок?** Начни с `python brain.py tour` — интерактивный гайд по всем командам и разделам памяти за 2 минуты.
 
 ---
 
@@ -149,6 +153,20 @@ python agents/mcp/brain_mcp.py   # запуск сервера (stdio)
 ```
 
 В `.mcp.json` в корне лежат пресеты подключения: **brain** (этот сервер), **filesystem**, **github**, **postgres** (read-only), **context7** (документация библиотек), **playwright**, **sentry**. Claude Code запросит подтверждение проектных серверов при старте; отключи ненужные через `/mcp`. Секреты задаются только через переменные окружения (`${GITHUB_TOKEN}` и т.п.) — в репозиторий значения не попадают.
+
+---
+
+## 🛡️ Безопасность: сканер секретов
+
+`brain.py check` (а значит и git pre-commit, и CI) дополнительно сканирует **все tracked и untracked файлы** на предмет утечек: токены OpenAI/Anthropic/GitHub/Slack/AWS/Stripe, приватные ключи, `password=`/`api_key=`. 
+
+```bash
+python agents/tools/secret_scan.py   # только сканер, exit 1 — если найдено
+```
+
+- **Плейсхолдеры не считаются секретами:** `${ENV}`, `{VAR}`, `your_...`, `changeme`, значения из `os.environ` — канон проекта (секреты только через `${ENV}`) не блокирует коммиты.
+- **Allowlist:** `.env.example`, каталоги `tests/`; точечное отключение файла — маркер `secretscan: off` в любом месте файла.
+- В **GitHub Actions** каждый FAIL/WARN дублируется аннотацией `::error file=…` / `::warning file=…` — проблемы видны прямо в PR, а не в логе.
 
 ---
 
