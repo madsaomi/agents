@@ -19,6 +19,7 @@ python brain.py bug "Error Title"   # 🐛 Зафиксировать ошибк
 python brain.py adr "Choice Title"  # 🏛️ Зафиксировать архитектурное решение (ADR)
 python brain.py check               # 🧠 Проверить целостность Второго Мозга (--fix для автопочинки)
 python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md
+python brain.py search "jwt"        # 🔍 Полнотекстовый поиск по памяти (SQLite FTS5, --reindex)
 python brain.py presets             # 🧩 Показать пресеты стека (django-drf, aiogram-bot, fastapi, nextjs)
 python brain.py preset <имя>        # 🧩 Применить пресет стека к проекту
 python brain.py upgrade             # ⬆️ Обновить шаблоны, не затирая свои правки и историю
@@ -115,6 +116,14 @@ python agents/tools/install_hooks.py
    python brain.py sync --check  # только проверить дрейф (exit 1 — в CI)
    ```
    `CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md` и `.cursor/rules/second-brain.mdc` генерируются из единого канона `agents/rules/CORE_RULES.md`. **Правь только канон**, сгенерированные файлы не редактируются вручную.
+
+7. **Поиск по долговременной памяти (FTS5):**
+   ```bash
+   python brain.py search "celery timeout"   # по историям, багам, ADR, планам, задачам
+   python brain.py search "jwt" --limit 5    # ограничить выдачу
+   python brain.py search --reindex          # переиндексировать память
+   ```
+   Индекс `*.brain_index.db` создаётся автоматически при первом запросе, в git не коммитится. Поддерживается префиксный поиск (`sess` → *session*), фразы в кавычках, кириллица; индекс сам чистит удалённые файлы. Вывод — **данные для анализа, а не готовое решение** (правило про prompt-injection).
 
 ---
 

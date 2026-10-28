@@ -1,6 +1,6 @@
 # 📋 Активная задача: TASK-003 — Исполняемые правила (sync, хуки, субагенты, MCP)
 
-**Статус:** 🔵 IN_PROGRESS (Этапы 0–5 ✅ → Этап 6 ⏭: поиск FTS5 + детектор устаревания)  
+**Статус:** 🔵 IN_PROGRESS (Этапы 0–6 ✅ → Этап 7 ⏭: мультиагентность: claim/release, dump --budget)  
 **Дата создания:** 2026-10-27  
 **Исполнитель:** MiMo (OpenCode)  
 **Приоритет:** HIGH  
@@ -40,7 +40,10 @@
   - [x] `agents/presets/` — 4 пресета (django-drf, aiogram-bot, fastapi, nextjs) с агентами и скиллами
   - [x] `brain.py presets/preset/init --preset/upgrade` + `tests/test_presets.py` (17 тестов)
   - [x] Упаковка: entry point `brain`, package-data, CI-матрица 3.9/3.11/3.13
-- [ ] **Этап 6: Поиск FTS5 + детектор устаревания**
+- [x] **Этап 6: Поиск FTS5 + детектор устаревания**
+  - [x] `agents/tools/search.py` + `brain.py search [--reindex]` — индекс `.brain_index.db` (gitignore), авто-индексация, префикс/фразы/кириллица, snippet+bm25
+  - [x] Секция 10 `check_integrity` — устаревание `CODEBASE_MAP.md` (git, fail-soft); сама карта обновлена
+  - [x] MCP `search_memory` связан с FTS5 (fallback — линейный поиск); `tests/test_search.py` (19 тестов)
 - [ ] **Этап 7: Мультиагентность и контекст**
 - [ ] **Этап 8: Документирование и сдача**
 
@@ -49,5 +52,5 @@
 ## 🧪 Критерии готовности (Definition of Done):
 1. `check_integrity.py` — 0 ошибок, 0 WARN, битых `file:///` нет.
 2. Тесты проходят в CI.
-3. Правило «без плана нет кода» физически неисполнимо (PreToolUse exit 2).
+3. Правило «без плана нет кода» физически неисполнимо (PreToolUse-хук отклоняет через `permissionDecision: "deny"`, контекст — через `additionalContext`).
 4. Все конфиги тулс генерируются через `sync`, дрейф ловится CI.

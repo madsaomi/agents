@@ -12,6 +12,7 @@
     python agents/tools/brain.py dump                - Скопировать контекст в буфер обмена для AI-чатов
     python agents/tools/brain.py check [--fix]       - Проверить целостность (с авто-исправлением)
     python agents/tools/brain.py sync [--check]      - Сгенерировать конфиги AI-инструментов из CORE_RULES.md
+    python agents/tools/brain.py search "<query>"    - Поиск по памяти (FTS5; --reindex — переиндексировать)
     python agents/tools/brain.py presets             - Показать доступные пресеты стека
     python agents/tools/brain.py preset <имя>        - Применить пресет стека (django-drf, aiogram-bot, ...)
     python agents/tools/brain.py upgrade             - Обновить шаблоны, не затирая данные пользователя
@@ -69,6 +70,7 @@ from dump_context import build_context_dump, copy_to_clipboard
 from new_plan import create_plan, slugify
 from end_session import end_session, extract_completed_tasks_from_active
 from init_project import init_project
+import search as memory_search
 
 # -----------------------------------------------------------------------------
 # Вспомогательные функции нумерации
@@ -549,6 +551,12 @@ def main():
     sync_parser = subparsers.add_parser("sync", help="Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md")
     sync_parser.add_argument("--check", action="store_true", help="Только проверить дрейф конфигов (exit 1 при расхождении)")
 
+    # search
+    search_parser = subparsers.add_parser("search", help="Поиск по долговременной памяти (SQLite FTS5)")
+    search_parser.add_argument("query", nargs="?", help='Поисковый запрос (слова или "фраза")')
+    search_parser.add_argument("--reindex", action="store_true", help="Переиндексировать память и выйти")
+    search_parser.add_argument("--limit", type=int, default=10, help="Максимум результатов (по умолчанию 10)")
+
     # presets / preset
     subparsers.add_parser("presets", help="Показать доступные пресеты стека")
     preset_parser = subparsers.add_parser("preset", help="Применить пресет стека (django-drf, aiogram-bot, fastapi, nextjs)")
@@ -646,6 +654,18 @@ def main():
 
     elif args.command == "sync":
         sys.exit(sync_tools(check=args.check))
+
+    elif args.command == "search":
+        if args.reindex:
+            count = memory_search.index_memory(root=PROJECT_ROOT)
+            print(f"✅ Переиндексировано: {count} документов → {memory_search.INDEX_FILE.name}")
+            sys.exit(0)
+        if not args.query:
+            print("❌ Укажи запрос: python brain.py search \"jwt timeout\"")
+            sys.exit(1)
+        results = memory_search.search_memory(args.query, limit=args.limit, root=PROJECT_ROOT)
+        print(memory_search.format_results(args.query, results))
+        sys.exit(0)
 
     elif args.command == "presets":
         presets = list_presets()

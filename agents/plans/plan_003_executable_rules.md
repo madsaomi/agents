@@ -102,9 +102,9 @@
   - [x] 5.2: Пресеты `fastapi` (агент fastapi-api-designer, скилл fastapi-endpoint) и `nextjs` (агент nextjs-reviewer, скилл nextjs-page)
   - [x] 5.3: `brain.py upgrade` — 3-way по sha256 в `agents/.preset_lock.json`: нетронутые шаблоны обновляются, правки пользователя сохраняются (перечисляются), история/планы/задачи/баги не трогаются; `init --preset` для новой инициализации
   - [x] 5.4: Упаковка: `pyproject.toml` v0.4.0, entry point `brain`, package-data (rules/templates/presets/hooks), CI-матрица Python 3.9/3.11/3.13; README (секции пресетов, upgrade, установки пакета); `tests/test_presets.py` (17 тестов)
-- [ ] **Этап 6: Поиск по памяти + свежесть документации**
-  - [ ] 6.1: `brain.py search` — SQLite FTS5 (история, баги, ADR, планы)
-  - [ ] 6.2: Детектор устаревания в `check`: git-изменения кода без обновления `CODEBASE_MAP.md` → WARN
+- [x] **Этап 6: Поиск по памяти + свежесть документации**
+  - [x] 6.1: `brain.py search` — SQLite FTS5 (история, баги, ADR, планы, задачи, правила, walkthrough): модуль `agents/tools/search.py` (индекс `.brain_index.db` в .gitignore, авто-индексация, префикс/фразы/кириллица, snippet+bm25, автоочистка удалённых файлов, миграция схемы external-content → обычная FTS5-таблица для snippet(), инъекции FTS-синтаксиса не роняют поиск); MCP `search_memory` связан с FTS5 (fallback — линейный поиск); `tests/test_search.py` (19 тестов)
+  - [x] 6.2: Детектор устаревания в `check` (секция 10): git-изменения кода без обновления `CODEBASE_MAP.md` → WARN, fail-soft без git; `CODEBASE_MAP.md` обновлён под фактическую структуру
 - [ ] **Этап 7: Мультиагентность и контекст**
   - [ ] 7.1: `brain.py claim/release` — файловые локи задач + поддержка git worktree
   - [ ] 7.2: `dump --budget N` — сжатие контекста под лимит токенов, автосуммаризация старой истории

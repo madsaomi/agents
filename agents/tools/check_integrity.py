@@ -317,6 +317,42 @@ def run_integrity_check(fix: bool = False):
         warnings_count += 1
         log_check(".mcp.json", False, "Конфиг MCP-пресетов не найден", is_warning=True)
 
+    # Секция 10: актуальность CODEBASE_MAP.md (детектор устаревания, fail-soft)
+    # Если код менялся после последнего обновления карты кодовой базы — предупреждаем.
+    codebase_map = AGENTS_DIR / "architecture" / "CODEBASE_MAP.md"
+    if codebase_map.is_file():
+        try:
+            import subprocess
+
+            def _last_change(paths):
+                """Unix-время последнего git-коммита, затронувшего paths (None — нет git/коммитов)."""
+                out = subprocess.run(
+                    ["git", "log", "-1", "--format=%ct", "--"] + paths,
+                    cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=10,
+                )
+                if out.returncode != 0 or not out.stdout.strip():
+                    return None
+                return int(out.stdout.strip().splitlines()[-1])
+
+            code_paths = ["agents/tools/", "agents/mcp/", "agents/tools/hooks/", "brain.py"]
+            code_ts = _last_change(code_paths)
+            map_ts = _last_change(["agents/architecture/CODEBASE_MAP.md"])
+            if code_ts is not None and map_ts is not None and code_ts > map_ts:
+                warnings_count += 1
+                log_check(
+                    "CODEBASE_MAP.md актуален",
+                    False,
+                    "Код менялся позже последнего обновления карты кодовой базы — обнови её (см. agents/architecture/CODEBASE_MAP.md)",
+                    is_warning=True,
+                )
+            elif code_ts is not None:
+                log_check("CODEBASE_MAP.md актуален", True, "Карта обновлялась не старее последних изменений кода")
+        except Exception:
+            log_check("CODEBASE_MAP.md актуален", True, "git недоступен — проверка пропущена")
+    else:
+        warnings_count += 1
+        log_check("CODEBASE_MAP.md", False, "Карта кодовой базы отсутствует", is_warning=True)
+
     # Итоговый вывод
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")
     if errors_count == 0:

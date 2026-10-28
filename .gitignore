@@ -46,3 +46,5 @@ scratch/
 .claude/.session_state.json
 *.bak
 tmp/
+.brain_index.db
+brain_index.db*

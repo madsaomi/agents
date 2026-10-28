@@ -88,15 +88,39 @@ def log_bug(title: str, component: str = "General", agent: str = "brain-mcp") ->
     )
 
 
+def _search_via_fts(query: str, limit: int, root: Path):
+    """
+    FTS5-поиск через agents/tools/search.py. Возвращает готовый текст или None,
+    если индекс недоступен (тогда вызывающий берёт линейный поиск как fallback).
+    """
+    try:
+        import search as memory_search
+    except ImportError:
+        return None
+    try:
+        results = memory_search.search_memory(query, limit=limit, root=root)
+    except Exception:
+        return None
+    if not results:
+        return None  # строгий AND-поиск ничего не дал — отдаём шанс линейному поиску
+    return memory_search.format_results(query, results)
+
+
 def search_memory(query: str, limit: int = 10, root: Path = None) -> str:
     """
     Поиск по памяти Second Brain: баги, история сессий, ADR, планы, задачи, правила.
-    Каждое слово запроса должно встретиться в файле (регистр не важен).
+    Сначала полнотекстовый индекс FTS5 (быстро, префиксы и фразы), затем линейный
+    поиск по словам как fallback (регистр не важен).
     """
     root = Path(root) if root else DEFAULT_ROOT
     query = (query or "").strip()
     if not query:
         return "❌ Ошибка: пустой запрос."
+
+    fts_out = _search_via_fts(query, limit, root)
+    if fts_out:
+        return fts_out
+
     words = [w.lower() for w in re.findall(r"\w+", query, re.UNICODE)]
     agents_dir = root / "agents"
 
