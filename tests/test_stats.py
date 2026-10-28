@@ -142,6 +142,55 @@ class TestCollectStats(unittest.TestCase):
         self.assertIsNone(s["active_task"]["title"])
 
 
+class TestWikiAndTags(unittest.TestCase):
+    """Секции PLAN-005: битые [[связи]] и облако тегов."""
+
+    def setUp(self):
+        self.root = make_root()
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+
+    def test_wiki_section_counts(self):
+        (self.root / "agents" / "plans" / "plan_001_x.md").write_text(
+            "# План\n**Статус:** APPROVED\nСм. [[BUG-001]] и [[GHOST-9]].\n",
+            encoding="utf-8")
+        (self.root / "agents" / "bugs_and_fixes" / "BUG_001_fix.md").write_text(
+            "# BUG-001\n", encoding="utf-8")
+        s = stats.collect_stats(root=self.root)
+        self.assertEqual(s["wiki"]["total"], 2)
+        broken = s["wiki"]["broken"]
+        self.assertEqual(len(broken), 1)
+        self.assertEqual(broken[0]["target"], "GHOST-9")
+
+    def test_wiki_placeholders_not_counted_as_broken(self):
+        (self.root / "agents" / "plans" / "plan_001_x.md").write_text(
+            "# План\nПример: [[...]] и [[bug#1]].\n", encoding="utf-8")
+        s = stats.collect_stats(root=self.root)
+        self.assertEqual(s["wiki"]["broken"], [])
+        self.assertEqual(s["wiki"]["total"], 0)
+
+    def test_tags_top10_sorted_by_frequency(self):
+        fm = "---\ntags: [a, b]\n---\n# X\n"
+        (self.root / "agents" / "plans" / "plan_001_x.md").write_text(
+            fm + "См. [[BUG-001]].\n", encoding="utf-8")
+        (self.root / "agents" / "history" / "session_001.md").write_text(
+            "---\ntags: a\n---\n# S\n", encoding="utf-8")
+        (self.root / "agents" / "bugs_and_fixes" / "BUG_001_fix.md").write_text(
+            "---\ntags: a, c\n---\n# B\n", encoding="utf-8")
+        s = stats.collect_stats(root=self.root)
+        self.assertEqual(s["tags"]["unique"], 3)
+        self.assertEqual(s["tags"]["top"][0], ("a", 3))  # частота, потом алфавит
+        self.assertEqual(dict(s["tags"]["top"])["b"], 1)
+
+    def test_format_shows_wiki_and_tags(self):
+        (self.root / "agents" / "plans" / "plan_001_x.md").write_text(
+            "---\ntags: [infra]\n---\n# План\nСм. [[GHOST-7]].\n",
+            encoding="utf-8")
+        out = stats.format_stats(stats.collect_stats(root=self.root))
+        self.assertIn("Битые [[связи]]: 1", out)
+        self.assertIn("GHOST-7", out)
+        self.assertIn("#infra(1)", out)
+
+
 class TestStatsCli(unittest.TestCase):
     def test_main_json_output(self):
         root = make_root()

@@ -21,7 +21,8 @@ python brain.py check               # 🧠 Проверить целостнос
 python brain.py stats [--json]      # 📊 Дашборд здоровья памяти (битые ссылки, устаревшее, локи)
 python brain.py tour [--list]       # 🧭 Интерактивный гид для нового пользователя
 python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md
-python brain.py search "jwt"        # 🔍 Полнотекстовый поиск по памяти (SQLite FTS5, --reindex)
+python brain.py search "jwt"        # 🔍 Полнотекстовый поиск по памяти (SQLite FTS5, --reindex, --tag, --since)
+python brain.py links BUG-001       # 🔗 Вики-связи [[...]]: исходящие, обратные ссылки, --unresolved
 python brain.py claim TASK-003      # 🔒 Забрать задачу (параллельным агентам — сюда не лезть)
 python brain.py release TASK-003    # 🔓 Освободить задачу
 python brain.py presets             # 🧩 Показать пресеты стека (django-drf, aiogram-bot, fastapi, nextjs)
@@ -125,11 +126,20 @@ python agents/tools/install_hooks.py
 
 7. **Поиск по долговременной памяти (FTS5):**
    ```bash
-   python brain.py search "celery timeout"   # по историям, багам, ADR, планам, задачам
-   python brain.py search "jwt" --limit 5    # ограничить выдачу
-   python brain.py search --reindex          # переиндексировать память
+   python brain.py search "celery timeout"            # по историям, багам, ADR, планам, задачам
+   python brain.py search "jwt" --limit 5             # ограничить выдачу
+   python brain.py search "jwt" --tag backend --tag auth   # фильтр по тегам frontmatter (И-логика)
+   python brain.py search "jwt" --since 2026-10-01    # только записи не раньше даты (YYYY-MM | YYYY-MM-DD)
+   python brain.py search --reindex                   # переиндексировать память
    ```
-   Индекс `*.brain_index.db` создаётся автоматически при первом запросе, в git не коммитится. Поддерживается префиксный поиск (`sess` → *session*), фразы в кавычках, кириллица; индекс сам чистит удалённые файлы. Вывод — **данные для анализа, а не готовое решение** (правило про prompt-injection).
+   Индекс `*.brain_index.db` создаётся автоматически при первом запросе, в git не коммитится. Поддерживается префиксный поиск (`sess` → *session*), фразы в кавычках, кириллица; индекс сам чистит удалённые файлы. Теги берутся из frontmatter (`tags: [backend, auth]`, `теги:`); старые индексы мигрируют автоматически. Вывод — **данные для анализа, а не готовое решение** (правило про prompt-injection).
+
+8. **Вики-связи `[[...]]` и обратные ссылки:**
+   ```bash
+   python brain.py links BUG-001      # исходящие + обратные ссылки (backlinks) записи
+   python brain.py links --unresolved # все битые [[связи]] памяти (exit 1, если есть)
+   ```
+   Ссылки пишутся прямо в текст: `См. [[BUG-001]]`, `[[plan_003|план]]`, `[[ADR-001#решение]]`. Цель резолвится по basename/stem/ID (регистр и `-`/`_` не важны, `[[BUG-001]]` находит `BUG_001_*.md`). Плейсхолдеры (`[[...]]`, `[[bug#1]]`) — не ошибки. Битые связи видны и в `brain.py stats`.
 
 ---
 

@@ -163,6 +163,29 @@ def collect_stats(root: Path = None, stale_days: int = STALE_DAYS) -> dict:
         except Exception:
             pass
 
+    # 6.5 Вики-связи [[...]] и теги (PLAN-005)
+    try:
+        import links as memory_links
+        all_links = memory_links.find_links(base)
+        broken_wiki = [l for l in all_links
+                       if not l["placeholder"] and l["dst"] is None]
+        total_wiki = sum(1 for l in all_links if not l["placeholder"])
+    except Exception:
+        broken_wiki, total_wiki = [], 0
+    try:
+        import search as memory_search
+        tag_counter = {}
+        for _section, f in _iter_memory_files(base):
+            try:
+                for t in memory_search.parse_tags(
+                        f.read_text(encoding="utf-8", errors="replace")):
+                    tag_counter[t] = tag_counter.get(t, 0) + 1
+            except OSError:
+                continue
+        top_tags = sorted(tag_counter.items(), key=lambda kv: (-kv[1], kv[0]))
+    except Exception:
+        top_tags = []
+
     # 7. Заголовок активной задачи
     task_title = None
     task_status = None
@@ -191,6 +214,8 @@ def collect_stats(root: Path = None, stale_days: int = STALE_DAYS) -> dict:
             "active_plans": [p.name for p in active_plans],
         },
         "broken_links": broken,
+        "wiki": {"total": total_wiki, "broken": broken_wiki},
+        "tags": {"unique": len(top_tags), "top": top_tags[:10]},
         "stale_days": stale_days,
         "stale_files": stale,
         "claims": [{"task": c.get("task"), "agent": c.get("agent"), "status": c.get("status")}
@@ -233,6 +258,22 @@ def format_stats(stats: dict) -> str:
             lines.append(f"   {b['file']}:{b['line']} → {b['target']}")
     else:
         lines.append("🔗 Битые ссылки: 0")
+
+    # Вики-связи [[...]] и теги (PLAN-005)
+    wiki = stats.get("wiki", {"total": 0, "broken": []})
+    if wiki["broken"]:
+        lines.append(f"🔗 Битые [[связи]]: {len(wiki['broken'])} (из {wiki['total']})")
+        for l in wiki["broken"][:5]:
+            lines.append(f"   {l['src']}:{l['line']} {l['raw']}")
+    else:
+        lines.append(f"🔗 Вики-связи [[...]]: {wiki['total']}, битых 0")
+
+    tags = stats.get("tags", {"unique": 0, "top": []})
+    if tags["top"]:
+        cloud = "  ".join(f"#{t}({n})" for t, n in tags["top"])
+        lines.append(f"🏷 Теги ({tags['unique']} уникальных): {cloud}")
+    else:
+        lines.append("🏷 Теги: нет (добавь frontmatter `tags:` в записи)")
 
     if stats["stale_files"]:
         lines.append(f"🕰 Устаревшие записи (>{stats['stale_days']} дней): {len(stats['stale_files'])}")

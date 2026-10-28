@@ -47,6 +47,70 @@ MEMORY_SECTIONS = (
 # Примитивные токенизаторы: слова (включая кириллицу), фразы в кавычках берутся как есть
 TOKEN_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9_]{2,}")
 
+# Frontmatter: блок между первой парой --- в начале файла
+FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*(?:\n|$)", re.DOTALL)
+# Ключ тегов (tags/теги) в строке frontmatter
+TAGS_KEY_RE = re.compile(r"^(?:tags|теги)\s*:\s*(.*)$", re.IGNORECASE)
+
+
+def parse_tags(text: str) -> list:
+    """
+    Извлекает теги из frontmatter файла:
+      ---
+      tags: [backend, auth]
+      ---
+      ---
+      tags: backend, auth
+      ---
+      ---
+      теги:
+        - infra
+      ---
+    Без frontmatter или без ключа тегов — [].
+    Дубликаты убираются, порядок сохраняется.
+    """
+    m = FRONTMATTER_RE.match(text or "")
+    if not m:
+        return []
+    tags = []
+    in_tags_list = False  # после "tags:" с пустым значением читаем список "- ..."
+    for line in m.group(1).splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        km = TAGS_KEY_RE.match(line)
+        if km:
+            value = km.group(1).strip()
+            if value.startswith("[") and value.endswith("]"):
+                value = value[1:-1]
+            elif not value:
+                # многострочный вид: теги:\n  - a\n  - b
+                in_tags_list = True
+                continue
+            in_tags_list = False
+            for part in re.split(r"[,\s]+", value):
+                part = part.strip().strip("\"'")
+                if part:
+                    tags.append(part)
+        elif in_tags_list and line.startswith("- "):
+            part = line[2:].strip().strip("\"'")
+            if part:
+                tags.append(part)
+        else:
+            in_tags_list = False  # новый ключ прерывает список
+    seen = set()
+    ordered = []
+    for t in tags:
+        low = t.lower()
+        if low not in seen:
+            seen.add(low)
+            ordered.append(t)
+    return ordered
+
+
+def _format_tags(tags) -> str:
+    return ",".join(tags or [])
+
 
 def _connect(db_path: Path = None) -> sqlite3.Connection:
     path = Path(db_path) if db_path else INDEX_FILE
@@ -69,6 +133,10 @@ def _ensure_schema(conn: sqlite3.Connection):
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
         """
     )
+    # Миграция: колонка tags (PLAN-005) в старых индексах отсутствует
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(docs)").fetchall()]
+    if cols and "tags" not in cols:
+        conn.execute("ALTER TABLE docs ADD COLUMN tags TEXT DEFAULT ''")
     # FTS-таблица: обычная (не external-content) — snippet() требует доступа к колонке body,
     # которой нет в таблице docs. Старый индекс (content='docs') пересоздаём.
     row = conn.execute(
@@ -128,24 +196,27 @@ def index_memory(root: Path = None, db_path: Path = None) -> int:
             except OSError:
                 continue
             sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
-            row = conn.execute("SELECT id, sha FROM docs WHERE path = ?", (rel,)).fetchone()
+            tags = _format_tags(parse_tags(text))
+            row = conn.execute("SELECT id, sha, tags FROM docs WHERE path = ?", (rel,)).fetchone()
             fts_ok = False
             if row:
                 fts_ok = conn.execute(
                     "SELECT 1 FROM docs_fts WHERE rowid = ?", (row[0],)
                 ).fetchone() is not None
-            if row and row[1] == sha and fts_ok:
+            # пропускаем только если ничего не изменилось, включая теги
+            # (после миграции docs.tags='' у старых записей — тогда переиндексируем)
+            if row and row[1] == sha and (row[2] or "") == tags and fts_ok:
                 continue  # файл не менялся и на месте в FTS — пропускаем
             title = _first_heading(text, md.stem)
             if row:
                 doc_id = row[0]
-                conn.execute("UPDATE docs SET title=?, section=?, mtime=?, sha=? WHERE id=?",
-                             (title, section, stat.st_mtime, sha, doc_id))
+                conn.execute("UPDATE docs SET title=?, section=?, mtime=?, sha=?, tags=? WHERE id=?",
+                             (title, section, stat.st_mtime, sha, tags, doc_id))
                 conn.execute("DELETE FROM docs_fts WHERE rowid=?", (doc_id,))
             else:
                 cur = conn.execute(
-                    "INSERT INTO docs (path, title, section, mtime, sha) VALUES (?,?,?,?,?)",
-                    (rel, title, section, stat.st_mtime, sha),
+                    "INSERT INTO docs (path, title, section, mtime, sha, tags) VALUES (?,?,?,?,?,?)",
+                    (rel, title, section, stat.st_mtime, sha, tags),
                 )
                 doc_id = cur.lastrowid
             conn.execute(
@@ -190,11 +261,15 @@ def _fts_query(raw: str) -> str:
 
 
 def search_memory(query: str, limit: int = 10, root: Path = None,
-                  db_path: Path = None, autoindex: bool = True):
+                  db_path: Path = None, autoindex: bool = True,
+                  tags=None, since: str = None):
     """
     Поиск по индексу памяти. Возвращает список словарей:
-    {path, title, section, snippet, score}.
+    {path, title, section, snippet, score, tags, mtime}.
     Пустой индекс/первый запуск — авто-индексация.
+    Фильтры (пост-фильтр по отобранным кандидатам):
+      tags — список тегов, И-логика (все должны быть у записи);
+      since — 'YYYY-MM-DD' (или 'YYYY-MM'), брать записи не раньше даты.
     """
     target_root = Path(root) if root else PROJECT_ROOT
     db = Path(db_path) if db_path else (target_root / INDEX_FILE.name)
@@ -207,6 +282,9 @@ def search_memory(query: str, limit: int = 10, root: Path = None,
     if not fts:
         return []
 
+    since_ts = _parse_since(since)
+    filtered = bool(tags) or since_ts is not None
+
     conn = _connect(db)
     try:
         _ensure_schema(conn)
@@ -218,28 +296,55 @@ def search_memory(query: str, limit: int = 10, root: Path = None,
             conn.close()
             index_memory(root=target_root, db_path=db)
             conn = _connect(db)
+        # при фильтрах тянем больше кандидатов: часть отсеется пост-фильтром
+        fetch = limit * 4 if filtered else limit
         try:
             rows = conn.execute(
                 """
                 SELECT d.path, d.title, d.section,
                        snippet(docs_fts, 1, '>>', '<<', ' … ', 24),
-                       bm25(docs_fts, 10.0, 1.0, 2.0) AS score
+                       bm25(docs_fts, 10.0, 1.0, 2.0) AS score,
+                       COALESCE(d.tags, ''), d.mtime
                 FROM docs_fts
                 JOIN docs d ON d.id = docs_fts.rowid
                 WHERE docs_fts MATCH ?
                 ORDER BY score
                 LIMIT ?
                 """,
-                (fts, limit),
+                (fts, fetch),
             ).fetchall()
         except sqlite3.OperationalError:
             return []  # некорректный запрос пользователя — тихо пусто
-        return [
-            {"path": p, "title": t, "section": s, "snippet": sn, "score": sc}
-            for p, t, s, sn, sc in rows
-        ]
+        results = []
+        want = {t.lower() for t in (tags or [])}
+        for p, t, s, sn, sc, tg, mt in rows:
+            if want:
+                have = {x.lower() for x in (tg or "").split(",") if x}
+                if not want.issubset(have):
+                    continue
+            if since_ts is not None and (mt or 0) < since_ts:
+                continue
+            results.append({"path": p, "title": t, "section": s,
+                            "snippet": sn, "score": sc, "tags": tg,
+                            "mtime": mt})
+            if len(results) >= limit:
+                break
+        return results
     finally:
         conn.close()
+
+
+def _parse_since(value):
+    """'2026-10' / '2026-10-05' -> timestamp (UTC-локально, начало периода) или None."""
+    if not value:
+        return None
+    v = str(value).strip()
+    for fmt in ("%Y-%m-%d", "%Y-%m", "%Y"):
+        try:
+            return datetime.strptime(v, fmt).timestamp()
+        except ValueError:
+            continue
+    raise ValueError(f"Некорректная дата --since: {value!r} (ожидается YYYY-MM-DD)")
 
 
 def format_results(query: str, results) -> str:
@@ -248,7 +353,8 @@ def format_results(query: str, results) -> str:
     lines = [f"🔍 Найдено: {len(results)} (запрос: «{query}», меньше score — лучше)"]
     for r in results:
         snippet = re.sub(r"\s+", " ", r["snippet"]).strip()
-        lines.append(f"\n• {r['path']}  [{r['section']}, score={r['score']:.2f}]")
+        tag_str = f" #{' #'.join(r['tags'].split(','))}" if r.get("tags") else ""
+        lines.append(f"\n• {r['path']}  [{r['section']}, score={r['score']:.2f}]{tag_str}")
         lines.append(f"  {r['title']}")
         if snippet:
             lines.append(f"  {snippet[:300]}")
@@ -264,6 +370,10 @@ def main() -> int:
     parser.add_argument("query", nargs="?", help='Поисковый запрос (слова или "фраза")')
     parser.add_argument("--reindex", action="store_true", help="Переиндексировать память и выйти")
     parser.add_argument("--limit", type=int, default=10, help="Максимум результатов (по умолчанию 10)")
+    parser.add_argument("--tag", action="append", default=[], metavar="TAG",
+                        help="Фильтр по тегу (можно несколько — И-логика)")
+    parser.add_argument("--since", default=None, metavar="DATE",
+                        help="Только записи не раньше даты (YYYY-MM-DD | YYYY-MM)")
     args = parser.parse_args()
 
     if args.reindex:
@@ -275,8 +385,21 @@ def main() -> int:
         parser.print_help()
         return 1
 
-    results = search_memory(args.query, limit=args.limit)
-    print(format_results(args.query, results))
+    try:
+        results = search_memory(args.query, limit=args.limit,
+                                tags=args.tag, since=args.since)
+    except ValueError as e:
+        print(f"❌ {e}")
+        return 1
+    filt = ""
+    if args.tag or args.since:
+        parts = []
+        if args.tag:
+            parts.append("теги=" + ",".join(args.tag))
+        if args.since:
+            parts.append(f"с {args.since}")
+        filt = " [" + ", ".join(parts) + "]"
+    print(format_results(args.query + filt, results))
     return 0
 
 

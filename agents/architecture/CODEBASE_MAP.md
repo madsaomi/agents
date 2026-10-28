@@ -65,17 +65,18 @@ Second Brain Template/
 |---|---|---|---|
 | `agents/tools/brain.py` | Единый CLI-диспетчер | `main()`, `sync_tools()`, `apply_preset()`, `upgrade_tool()`, `_detect_project_root()` | `brain.py --help`, тесты всех подкоманд |
 | `agents/rules/CORE_RULES.md` | 📜 Канон правил проекта | 11 правил (вкл. prompt-injection) | `python brain.py sync --check` — конфиги перегенерированы |
-| `agents/tools/search.py` | 🔍 Поиск по памяти (FTS5) | `index_memory()`, `search_memory()`, `_fts_query()` | `tests/test_search.py`; индекс `.brain_index.db` в .gitignore |
+| `agents/tools/search.py` | 🔍 Поиск по памяти (FTS5) | `index_memory()`, `search_memory(tags=, since=)`, `parse_tags()`, `_fts_query()` | `tests/test_search.py`; индекс `.brain_index.db` в .gitignore; авто-миграция `docs.tags` |
 | `agents/tools/locks.py` | 🤝 Блокировки задач (мультиагентность) | `claim_task()`, `release_task()`, `list_claims()`, `_lock_status()` (heartbeat-TTL) | `tests/test_claim.py`; локи `agents/tasks/.locks/` в .gitignore |
 | `agents/tools/dump_context.py` | 📦 Контекст для веб-чатов (+ `--budget`) | `build_context_dump(root, budget)`, `_compact()`, `estimate_tokens()` | `tests/test_dump_budget.py`; бюджет держит ядро «статус+задача» |
 | `agents/tools/check_integrity.py` | Целостность системы (11 секций) | `run_integrity_check(fix=)`, `log_check()` (GitHub-аннотации `::error`/`::warning`) | Запуск без ошибок; fail-soft без git; секреты сканируются всегда |
 | `agents/tools/secret_scan.py` | 🛡️ Сканер секретов (токены, ключи, пароли) | `scan_project()`, `scan_files()`, `_is_placeholder()` | `tests/test_secret_scan.py`; плейсхолдеры `${ENV}` не ловятся; `secretscan: off` |
-| `agents/tools/stats.py` | 📊 Дашборд здоровья памяти | `collect_stats()`, `format_stats()`, `_broken_links()` | `tests/test_stats.py`; `brain.py stats [--json]` |
+| `agents/tools/stats.py` | 📊 Дашборд здоровья памяти | `collect_stats()`, `format_stats()`, `_broken_links()` | `tests/test_stats.py`; `brain.py stats [--json]`; секции битых `[[связей]]` и top-тегов |
+| `agents/tools/links.py` | 🔗 Вики-связи `[[...]]` и обратные ссылки | `find_links()`, `links_for()`, `unresolved_links()`, `build_index()` | `tests/test_links.py`; `brain.py links <ID> [--unresolved]`; плейсхолдеры — не ошибки |
 | `agents/tools/hooks/*.py` | Исполняемые хуки Claude Code | `pre_tool_gate`, `inject_context`, `post_edit_lint`, `session_log` | `tests/test_hooks.py` (17 сценариев) |
 | `agents/mcp/brain_mcp.py` | MCP-инструменты памяти | `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session` | `tests/test_brain_mcp.py`; формат `.mcp.json` |
 | `agents/presets/*/preset.json` | Манифесты пресетов стека | `files[]` (src → dst) | `tests/test_presets.py`; секретов в env.example нет |
 | `agents/templates/sync/*.tpl` | Шаблоны 5 конфигов AI-инструментов | плейсхолдеры `{{...}}` | `brain.py sync` — дрейф отсутствует |
-| `tests/` | Набор авто-тестов (146) | unittest (stdlib) | `python -m unittest discover -s tests` |
+| `tests/` | Набор авто-тестов (195) | unittest (stdlib) | `python -m unittest discover -s tests` |
 | `.github/workflows/integrity.yml` | CI-ворота | compile → unittest → sync --check → integrity | Матрица Python 3.9/3.11/3.13 зелёная |
 
 > [!TIP]

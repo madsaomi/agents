@@ -21,6 +21,7 @@
     python agents/tools/brain.py preset <имя>        - Применить пресет стека (django-drf, aiogram-bot, ...)
     python agents/tools/brain.py upgrade             - Обновить шаблоны, не затирая данные пользователя
     python agents/tools/brain.py stats [--json]      - Дашборд здоровья памяти (счётчики, битые ссылки, локи)
+    python agents/tools/brain.py links <ID>          - Вики-связи [[...]]: исходящие, обратные, --unresolved
     python agents/tools/brain.py tour [--list]       - Интерактивный гид для нового пользователя
     python agents/tools/brain.py end                 - Завершить сессию и сформировать отчет
 """
@@ -120,6 +121,7 @@ from init_project import init_project
 import search as memory_search
 import locks as task_locks
 import stats as memory_stats
+import links as memory_links
 
 # -----------------------------------------------------------------------------
 # Вспомогательные функции нумерации
@@ -607,6 +609,10 @@ def main():
     search_parser.add_argument("query", nargs="?", help='Поисковый запрос (слова или "фраза")')
     search_parser.add_argument("--reindex", action="store_true", help="Переиндексировать память и выйти")
     search_parser.add_argument("--limit", type=int, default=10, help="Максимум результатов (по умолчанию 10)")
+    search_parser.add_argument("--tag", action="append", default=[], metavar="TAG",
+                               help="Фильтр по тегу frontmatter (можно несколько — И-логика)")
+    search_parser.add_argument("--since", default=None, metavar="DATE",
+                               help="Только записи не раньше даты (YYYY-MM-DD | YYYY-MM)")
 
     # claim / release / claims — блокировки задач для параллельных агентов
     claim_parser = subparsers.add_parser("claim", help="Забрать задачу (лок для параллельной работы агентов)")
@@ -632,6 +638,11 @@ def main():
                               help="Порог устаревания записей в днях")
     tour_parser = subparsers.add_parser("tour", help="Интерактивный гид для нового пользователя")
     tour_parser.add_argument("--list", action="store_true", help="Печатать все экраны сразу (без интерактива)")
+
+    # links (PLAN-005)
+    links_parser = subparsers.add_parser("links", help="Вики-связи [[...]]: исходящие, обратные ссылки")
+    links_parser.add_argument("query", nargs="?", default="", help="ID/имя записи (напр. BUG-001)")
+    links_parser.add_argument("--unresolved", action="store_true", help="Все битые [[связи]] памяти")
 
     # presets / preset
     subparsers.add_parser("presets", help="Показать доступные пресеты стека")
@@ -745,8 +756,23 @@ def main():
         if not args.query:
             print("❌ Укажи запрос: python brain.py search \"jwt timeout\"")
             sys.exit(1)
-        results = memory_search.search_memory(args.query, limit=args.limit, root=PROJECT_ROOT)
-        print(memory_search.format_results(args.query, results))
+        try:
+            results = memory_search.search_memory(
+                args.query, limit=args.limit, root=PROJECT_ROOT,
+                tags=args.tag, since=args.since,
+            )
+        except ValueError as e:
+            print(f"❌ {e}")
+            sys.exit(1)
+        shown = args.query
+        filt = []
+        if args.tag:
+            filt.append("теги=" + ",".join(args.tag))
+        if args.since:
+            filt.append(f"с {args.since}")
+        if filt:
+            shown += " [" + ", ".join(filt) + "]"
+        print(memory_search.format_results(shown, results))
         sys.exit(0)
 
     elif args.command == "claim":
@@ -815,6 +841,12 @@ def main():
                         print("\nТур прерван. Вернуться: python brain.py tour")
                         break
         sys.exit(0)
+
+    elif args.command == "links":
+        code = memory_links.main(
+            ([args.query] if args.query else []) + (["--unresolved"] if args.unresolved else [])
+        )
+        sys.exit(code)
 
     elif args.command == "presets":
         presets = list_presets()

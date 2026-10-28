@@ -270,5 +270,184 @@ class TestFormatResults(unittest.TestCase):
         self.assertIn("данные", out.lower())
 
 
+# ---------------------------------------------------------------------------
+# Теги и фильтры (PLAN-005, Этап 2)
+# ---------------------------------------------------------------------------
+
+class TestParseTags(unittest.TestCase):
+    def test_inline_bracket_list(self):
+        self.assertEqual(
+            search.parse_tags("---\ntags: [backend, auth]\n---\nтекст"),
+            ["backend", "auth"])
+
+    def test_csv_on_one_line(self):
+        self.assertEqual(
+            search.parse_tags("---\ntags: backend, auth\n---"),
+            ["backend", "auth"])
+
+    def test_multiline_list_russian_key(self):
+        key = "теги"  # чистая кириллица (канон проекта)
+        self.assertEqual(
+            search.parse_tags(f"---\n{key}:\n  - infra\n  - ops\n---"),
+            ["infra", "ops"])
+
+    def test_no_frontmatter(self):
+        self.assertEqual(search.parse_tags("# Заголовок\nтекст"), [])
+
+    def test_frontmatter_without_tags(self):
+        self.assertEqual(
+            search.parse_tags("---\nname: x\nsteps:\n  - one\n---"), [])
+
+    def test_other_lists_not_taken(self):
+        """Списки после других ключей не превращаются в теги."""
+        self.assertEqual(
+            search.parse_tags("---\nname: x\nsteps:\n  - one\n  - two\n---"),
+            [])
+
+    def test_dedup_case_insensitive(self):
+        self.assertEqual(search.parse_tags("---\ntags: a, A, b\n---"),
+                         ["a", "b"])
+
+    def test_empty_and_junk(self):
+        self.assertEqual(search.parse_tags(""), [])
+        self.assertEqual(search.parse_tags("---\n---"), [])
+        self.assertEqual(search.parse_tags("---\nbroken"), [])
+
+    def test_quoted_and_hash_tags(self):
+        self.assertEqual(
+            search.parse_tags('---\ntags: ["infra", \'ops\']\n---'),
+            ["infra", "ops"])
+
+
+def _tagged_project() -> Path:
+    """Проект с двумя планами: backend и frontend."""
+    root = Path(tempfile.mkdtemp(prefix="brain_tags_test_"))
+    d = root / "agents" / "plans"
+    d.mkdir(parents=True)
+    (d / "plan_backend.md").write_text(
+        "---\ntags: [backend]\n---\n# Backend\n Celery timeout searchword\n",
+        encoding="utf-8")
+    (d / "plan_frontend.md").write_text(
+        "---\ntags: frontend\n---\n# Frontend\n React timeout searchword\n",
+        encoding="utf-8")
+    (d / "plan_plain.md").write_text(
+        "# Plain\n Searchword without tags\n", encoding="utf-8")
+    return root
+
+
+class TestTagFilters(unittest.TestCase):
+    def setUp(self):
+        self.root = _tagged_project()
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.db = self.root / "idx.db"
+        search.index_memory(root=self.root, db_path=self.db)
+
+    def _search(self, **kw):
+        return search.search_memory("searchword", root=self.root,
+                                    db_path=self.db, **kw)
+
+    def test_tags_stored_in_index(self):
+        conn = sqlite3.connect(str(self.db))
+        rows = dict(conn.execute("SELECT path, tags FROM docs").fetchall())
+        conn.close()
+        self.assertEqual(rows["agents/plans/plan_backend.md"], "backend")
+        self.assertEqual(rows["agents/plans/plan_frontend.md"], "frontend")
+        self.assertEqual(rows["agents/plans/plan_plain.md"], "")
+
+    def test_filter_single_tag(self):
+        res = self._search(tags=["backend"])
+        self.assertEqual(len(res), 1)
+        self.assertTrue(res[0]["path"].endswith("plan_backend.md"))
+
+    def test_filter_and_logic(self):
+        # И-логика: нет записи с двумя тегами сразу
+        self.assertEqual(self._search(tags=["backend", "frontend"]), [])
+        res = self._search(tags=["backend"])
+        self.assertEqual(len(res), 1)
+
+    def test_tag_filter_is_case_insensitive(self):
+        res = self._search(tags=["BACKEND"])
+        self.assertEqual(len(res), 1)
+
+    def test_without_filter_all_returned(self):
+        self.assertEqual(len(self._search()), 3)
+
+    def test_filter_combines_with_fts(self):
+        # 'timeout' есть в обоих тегованных файлах — фильтр сужает до одного
+        res = search.search_memory("timeout", root=self.root, db_path=self.db,
+                                   tags=["frontend"])
+        self.assertEqual(len(res), 1)
+        self.assertTrue(res[0]["path"].endswith("plan_frontend.md"))
+
+    def test_since_filters_out_old(self):
+        res = self._search(since="2030-01-01")
+        self.assertEqual(res, [])
+
+    def test_since_inclusive_passes(self):
+        res = self._search(since="2000-01-01")
+        self.assertEqual(len(res), 3)
+
+    def test_since_and_tag_together(self):
+        res = self._search(tags=["backend"], since="2000-01-01")
+        self.assertEqual(len(res), 1)
+        res = self._search(tags=["backend"], since="2030-01-01")
+        self.assertEqual(res, [])
+
+    def test_invalid_since_raises(self):
+        with self.assertRaises(ValueError):
+            self._search(since="not-a-date")
+
+    def test_results_include_tags_field(self):
+        res = self._search(tags=["frontend"])
+        self.assertEqual(res[0]["tags"], "frontend")
+        self.assertIn("mtime", res[0])
+
+
+class TestTagsMigration(unittest.TestCase):
+    """Старый индекс без docs.tags мигрирует автоматически."""
+
+    def test_old_index_gets_tags_column(self):
+        root = Path(tempfile.mkdtemp(prefix="brain_mig_test_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        db = root / "old.db"
+        conn = sqlite3.connect(str(db))
+        conn.executescript(
+            """
+            CREATE TABLE docs (
+                id INTEGER PRIMARY KEY,
+                path TEXT UNIQUE NOT NULL,
+                title TEXT, section TEXT, mtime REAL, sha TEXT
+            );
+            CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+            CREATE VIRTUAL TABLE docs_fts USING fts5(
+                title, body, path, tokenize='unicode61 remove_diacritics 2'
+            );
+            """
+        )
+        conn.commit()
+        conn.close()
+
+        d = root / "agents" / "plans"
+        d.mkdir(parents=True)
+        (d / "p.md").write_text(
+            "---\ntags: [migrated]\n---\n# P\nmigrate me\n", encoding="utf-8")
+
+        # индексация в старую схему — авто-ALTER TABLE
+        self.assertEqual(search.index_memory(root=root, db_path=db), 1)
+
+        conn = sqlite3.connect(str(db))
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(docs)")]
+        tags = conn.execute("SELECT tags FROM docs").fetchone()[0]
+        conn.close()
+        self.assertIn("tags", cols)
+        self.assertEqual(tags, "migrated")
+
+        # повторная индексация и фильтр работают
+        self.assertEqual(search.index_memory(root=root, db_path=db), 1)
+        res = search.search_memory("migrate", root=root, db_path=db,
+                                   tags=["migrated"])
+        self.assertEqual(len(res), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
