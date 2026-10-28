@@ -19,6 +19,9 @@ python brain.py bug "Error Title"   # 🐛 Зафиксировать ошибк
 python brain.py adr "Choice Title"  # 🏛️ Зафиксировать архитектурное решение (ADR)
 python brain.py check               # 🧠 Проверить целостность Второго Мозга (--fix для автопочинки)
 python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md
+python brain.py presets             # 🧩 Показать пресеты стека (django-drf, aiogram-bot, fastapi, nextjs)
+python brain.py preset <имя>        # 🧩 Применить пресет стека к проекту
+python brain.py upgrade             # ⬆️ Обновить шаблоны, не затирая свои правки и историю
 python brain.py dump                # 📦 Скопировать контекст в буфер для веб-чатов (ChatGPT/Claude)
 python brain.py end                 # 🏁 Завершить сессию и сохранить историю
 ```
@@ -44,6 +47,15 @@ python brain.py end                 # 🏁 Завершить сессию и с
 python agents/tools/init_project.py --name "Мой Проект" --desc "Краткое описание" --stack "FastAPI + React"
 ```
 *(Или запусти без параметров `python agents/tools/init_project.py` для интерактивного ввода).*
+
+**Пресеты стека (django-drf, aiogram-bot, fastapi, nextjs):**
+```bash
+python brain.py presets                    # что доступно
+python brain.py init --preset django-drf   # инициализация + пресет одной командой
+# или поверх существующего проекта:
+python brain.py preset aiogram-bot
+```
+Пресет подставляет `CODING_STANDARDS`, `CODEBASE_MAP`, QA-чек-лист, `.env.example`, Docker/CI и стековых субагентов/скиллов (например, django-drf даёт `django-migration-reviewer`, `drf-api-designer` и скиллы `new-drf-endpoint`, `celery-task`, `db-migration`). Свои правки установленных файлов не затираются — сравнение по хешам в `agents/.preset_lock.json`.
 
 ### Шаг 3: Включение защиты коммитов (Git Hook)
 ```bash
@@ -126,6 +138,32 @@ python agents/mcp/brain_mcp.py   # запуск сервера (stdio)
 ```
 
 В `.mcp.json` в корне лежат пресеты подключения: **brain** (этот сервер), **filesystem**, **github**, **postgres** (read-only), **context7** (документация библиотек), **playwright**, **sentry**. Claude Code запросит подтверждение проектных серверов при старте; отключи ненужные через `/mcp`. Секреты задаются только через переменные окружения (`${GITHUB_TOKEN}` и т.п.) — в репозиторий значения не попадают.
+
+---
+
+## ⬆️ Обновление шаблона (`brain upgrade`)
+
+```bash
+python brain.py upgrade
+```
+
+Обновляет шаблонные файлы до актуальных версий **без затирания твоих данных**:
+- Сгенерированные конфиги пересинхронизируются из `agents/rules/CORE_RULES.md` (`sync`).
+- Файлы из пресетов обновляются только если ты их не менял (проверка sha256 в `agents/.preset_lock.json`); свои правки сохраняются — upgrade перечисляет их и предлагает сверить вручную.
+- **Никогда не трогает** `agents/history/`, `agents/plans/`, `agents/tasks/`, `agents/bugs_and_fixes/` и другие твои артефакты.
+- Завершается запуском `check_integrity.py --fix` (восстановление недостающих каталогов).
+
+## 📦 Установка CLI как пакета (опционально)
+
+Ядро шаблона работает без установки (`python brain.py ...` из корня). Для глобальной команды `brain`:
+
+```bash
+pip install .            # или: pipx install .
+brain status             # команда работает в каталоге любого проекта с agents/
+pip install ".[mcp]"     # + MCP-сервер brain-mcp (Python 3.11+)
+```
+
+Пакет включает шаблоны и пресеты (`agents/rules`, `agents/templates`, `agents/presets`) — `brain preset django-drf` работает и из установленного пакета. Требуется Python 3.9+ (MCP-extra — 3.11+).
 
 ---
 

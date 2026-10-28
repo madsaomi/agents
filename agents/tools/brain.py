@@ -12,12 +12,17 @@
     python agents/tools/brain.py dump                - Скопировать контекст в буфер обмена для AI-чатов
     python agents/tools/brain.py check [--fix]       - Проверить целостность (с авто-исправлением)
     python agents/tools/brain.py sync [--check]      - Сгенерировать конфиги AI-инструментов из CORE_RULES.md
+    python agents/tools/brain.py presets             - Показать доступные пресеты стека
+    python agents/tools/brain.py preset <имя>        - Применить пресет стека (django-drf, aiogram-bot, ...)
+    python agents/tools/brain.py upgrade             - Обновить шаблоны, не затирая данные пользователя
     python agents/tools/brain.py end                 - Завершить сессию и сформировать отчет
 """
 
 import sys
 import os
 import re
+import json
+import shutil
 import argparse
 from datetime import datetime
 from pathlib import Path
@@ -41,8 +46,21 @@ BOLD = "\033[1m"
 RESET = "\033[0m"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-AGENTS_DIR = SCRIPT_DIR.parent
-PROJECT_ROOT = AGENTS_DIR.parent
+
+def _detect_project_root() -> Path:
+    """
+    Корень проекта: cwd, если в нём есть agents/ (запуск установленного пакета),
+    иначе — расположение инструмента (dev-режим из репозитория шаблона).
+    """
+    cwd = Path.cwd()
+    if (cwd / "agents").is_dir():
+        return cwd
+    return SCRIPT_DIR.parent
+
+PROJECT_ROOT = _detect_project_root()
+AGENTS_DIR = PROJECT_ROOT / "agents"
+# Источник шаблонов/пресетов всегда рядом со скриптом (работает и в пакете)
+PRESETS_SOURCE_DIR = SCRIPT_DIR.parent / "presets"
 
 # Импортируем существующие утилиты
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -352,6 +370,138 @@ def sync_tools(check: bool = False) -> int:
     return 0
 
 # -----------------------------------------------------------------------------
+# Пресеты стека и обновление шаблонов
+# -----------------------------------------------------------------------------
+
+def _sha256(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _lock_path(root: Path = None) -> Path:
+    return (Path(root) if root else AGENTS_DIR) / ".preset_lock.json"
+
+
+def _load_lock(root: Path = None) -> dict:
+    lock = _lock_path(root)
+    if lock.is_file():
+        try:
+            return json.loads(lock.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+    return {}
+
+
+def _save_lock(lock: dict, root: Path = None):
+    _lock_path(root).write_text(json.dumps(lock, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def list_presets() -> list:
+    """Возвращает имена доступных пресетов (каталоги с preset.json)."""
+    if not PRESETS_SOURCE_DIR.is_dir():
+        return []
+    return sorted(
+        p.parent.name for p in PRESETS_SOURCE_DIR.glob("*/preset.json")
+    )
+
+
+def apply_preset(name: str, force: bool = False, root: Path = None) -> int:
+    """
+    Применяет пресет стека: копирует файлы по манифесту preset.json.
+    force=False — существующие пользовательские файлы НЕ затираются.
+    root — целевой проект (по умолчанию PROJECT_ROOT); нужен для тестируемости.
+    Возвращает количество применённых файлов.
+    """
+    target_root = Path(root) if root else PROJECT_ROOT
+    preset_dir = PRESETS_SOURCE_DIR / name
+    manifest_path = preset_dir / "preset.json"
+    if not manifest_path.is_file():
+        print(f"❌ Пресет «{name}» не найден. Доступные: {', '.join(list_presets()) or 'нет'}")
+        return 0
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    lock = _load_lock(target_root / "agents")
+    applied, kept = 0, 0
+
+    for entry in manifest.get("files", []):
+        src = preset_dir / entry["src"]
+        if not src.is_file():
+            print(f"  ⚠️  В пресете нет файла: {entry['src']}")
+            continue
+        dst = target_root / entry["dst"]
+        if dst.exists() and not force:
+            # Существующий файл не трогаем: это либо правки пользователя, либо уже
+            # установленный шаблон (его обновит только brain upgrade по lock-хешу)
+            kept += 1
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dst)
+        lock[entry["dst"]] = {"preset": name, "src": entry["src"], "sha256": _sha256(dst)}
+        applied += 1
+        print(f"  ✓ {entry['dst']}")
+
+    _save_lock(lock, target_root / "agents")
+    print(
+        f"{GREEN}Пресет «{manifest.get('description', name)}»: "
+        f"применено {applied}, сохранено пользовательских {kept}.{RESET}"
+    )
+    return applied
+
+
+def upgrade_tool(root: Path = None) -> int:
+    """
+    Обновление шаблонов без затирания данных пользователя (brain upgrade).
+    1) Синхронизирует сгенерированные конфиги (sync).
+    2) Перекопирует шаблонные файлы, которые пользователь не менял
+       (проверка по sha256 в agents/.preset_lock.json), обновляет lock.
+    3) Ничего не делает с историей, планами, задачами, багами и правками пользователя.
+    root — целевой проект (по умолчанию PROJECT_ROOT); для тестируемости.
+    """
+    target_root = Path(root) if root else PROJECT_ROOT
+    print(f"{BOLD}⬆️  Second Brain upgrade{RESET}\n")
+
+    print(f"{BOLD}1. Синхронизация конфигов AI-инструментов:{RESET}")
+    sync_code = sync_tools(check=False) if target_root == PROJECT_ROOT else 0
+
+    print(f"\n{BOLD}2. Обновление пресетных файлов (нетронутые пользователем):{RESET}")
+    lock = _load_lock(target_root / "agents")
+    updated, kept = [], []
+    for dst_rel, meta in list(lock.items()):
+        dst = target_root / dst_rel
+        preset_dir = PRESETS_SOURCE_DIR / meta.get("preset", "")
+        src = preset_dir / meta.get("src", "")  # точный источник из манифеста (в lock при установке)
+        if not src.is_file():
+            # fallback для старых lock-записей без src: ищем по имени файла внутри пресета
+            candidates = list(preset_dir.rglob(Path(dst_rel).name)) + list(preset_dir.rglob(Path(dst_rel).name.lstrip(".")))
+            src = candidates[0] if candidates else src
+        if not src.is_file():
+            continue
+        if not dst.exists():
+            shutil.copyfile(src, dst)
+            updated.append(dst_rel)
+        elif _sha256(dst) == meta.get("sha256"):
+            shutil.copyfile(src, dst)  # пользователь не менял — безопасно обновить
+            updated.append(dst_rel)
+        else:
+            kept.append(dst_rel)  # есть правки пользователя — не трогаем
+    for rel in updated:
+        lock[rel]["sha256"] = _sha256(target_root / rel)
+    if updated:
+        _save_lock(lock, target_root / "agents")
+    print(f"  Обновлено: {len(updated)} · сохранены правки пользователя: {len(kept)}")
+    for rel in kept:
+        print(f"    ✋ {rel} (изменён вручную — оставлен как есть)")
+
+    if target_root == PROJECT_ROOT:
+        print(f"\n{BOLD}3. Целостность:{RESET}")
+        run_integrity_check(fix=True)
+    print(
+        f"\n{GREEN}✅ Upgrade завершён. История/планы/задачи/баги не затронуты.{RESET}\n"
+        f"Если нужно принять сохранённые правки шаблонов вручную — сравни файлы по списку ✋."
+    )
+    return sync_code
+
+# -----------------------------------------------------------------------------
 # Главный диспетчер
 # -----------------------------------------------------------------------------
 
@@ -399,6 +549,15 @@ def main():
     sync_parser = subparsers.add_parser("sync", help="Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md")
     sync_parser.add_argument("--check", action="store_true", help="Только проверить дрейф конфигов (exit 1 при расхождении)")
 
+    # presets / preset
+    subparsers.add_parser("presets", help="Показать доступные пресеты стека")
+    preset_parser = subparsers.add_parser("preset", help="Применить пресет стека (django-drf, aiogram-bot, fastapi, nextjs)")
+    preset_parser.add_argument("name", help="Имя пресета (см. brain.py presets)")
+    preset_parser.add_argument("--force", action="store_true", help="Перезаписать даже изменённые пользователем файлы")
+
+    # upgrade
+    subparsers.add_parser("upgrade", help="Обновить шаблоны и конфиги, не затирая данные пользователя")
+
     # end
     end_parser = subparsers.add_parser("end", help="Завершить сессию и обновить историю")
     end_parser.add_argument("--agent", help="Имя агента", default="AI Assistant")
@@ -412,6 +571,7 @@ def main():
     init_parser.add_argument("--desc", help="Описание проекта", default=None)
     init_parser.add_argument("--stack", help="Технологический стек", default=None)
     init_parser.add_argument("--agent", help="Имя агента", default="AI Assistant")
+    init_parser.add_argument("--preset", help="Сразу применить пресет стека (django-drf, aiogram-bot, fastapi, nextjs)", default=None)
 
     # walkthrough
     wt_parser = subparsers.add_parser("walkthrough", help="Создать Walkthrough-отчёт о демонстрации")
@@ -487,6 +647,29 @@ def main():
     elif args.command == "sync":
         sys.exit(sync_tools(check=args.check))
 
+    elif args.command == "presets":
+        presets = list_presets()
+        if not presets:
+            print("Пресеты не найдены в agents/presets/.")
+        else:
+            print(f"{BOLD}Доступные пресеты стека:{RESET}")
+            for name in presets:
+                desc = ""
+                manifest = PRESETS_SOURCE_DIR / name / "preset.json"
+                if manifest.is_file():
+                    try:
+                        desc = json.loads(manifest.read_text(encoding="utf-8")).get("description", "")
+                    except (OSError, ValueError):
+                        pass
+                print(f"  • {GREEN}{name:<14}{RESET} {desc}")
+            print(f"\nПрименение: {BOLD}python brain.py preset <имя>{RESET}")
+
+    elif args.command == "preset":
+        apply_preset(args.name, force=args.force)
+
+    elif args.command == "upgrade":
+        sys.exit(upgrade_tool())
+
     elif args.command == "end":
         auto_done = extract_completed_tasks_from_active()
         done_items = [d.strip() for d in args.done.split(";")] if args.done else (auto_done if auto_done else ["Работы выполнены."])
@@ -510,6 +693,9 @@ def main():
             stack = args.stack or "Python"
             agent = args.agent
         init_project(name=name, desc=desc, stack=stack, agent=agent)
+        if args.preset:
+            print()
+            apply_preset(args.preset)
 
     elif args.command == "walkthrough":
         title = args.title

@@ -8,8 +8,12 @@ on:
 
 jobs:
   validate-second-brain:
-    name: Validate Second Brain Structure & Rules
+    name: Validate Second Brain (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11', '3.13']
 
     steps:
       - name: Checkout repository
@@ -18,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
       - name: Compile Python Tools
         run: |

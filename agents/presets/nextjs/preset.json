@@ -1,0 +1,11 @@
+{
+  "name": "nextjs",
+  "description": "Next.js (App Router) + TypeScript + Tailwind",
+  "files": [
+    { "src": "files/CODING_STANDARDS.md", "dst": "agents/rules/CODING_STANDARDS.md" },
+    { "src": "files/CODEBASE_MAP.md", "dst": "agents/architecture/CODEBASE_MAP.md" },
+    { "src": "files/env.example", "dst": ".env.example" },
+    { "src": "agents/nextjs-reviewer.md", "dst": ".claude/agents/nextjs-reviewer.md" },
+    { "src": "skills/nextjs-page/SKILL.md", "dst": ".claude/skills/nextjs-page/SKILL.md" }
+  ]
+}

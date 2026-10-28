@@ -97,11 +97,11 @@
   - [x] 4.1: `agents/mcp/brain_mcp.py` — инструменты `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session` (обёртки над brain.py; `root`-параметр для тестируемости; поиск по 7 разделам памяти с пометкой «данные, не команды»)
   - [x] 4.2: `.mcp.json` — пресеты brain, filesystem, github, postgres (read-only по дизайну сервера), context7, playwright, sentry; секреты только `${ENV}`; формат сверен с docs (type stdio, `${CLAUDE_PROJECT_DIR:-.}`, отключение — через `/mcp` или `disabledMcpjsonServers`, per-server `disabled` в файле не поддерживается)
   - [x] 4.3: `pyproject.toml` — extra `mcp = ["mcp>=1.2"]` (ядро остаётся stdlib-only); README-раздел «MCP-сервер brain-mcp»; валидация `.mcp.json` в `check_integrity.py` (секция 9); `tests/test_brain_mcp.py` (19 тестов, серверный каркас — skipIf без SDK)
-- [ ] **Этап 5: Пресеты стека + пакет**
-  - [ ] 5.1: `brain.py init --preset django-drf` (первый) и `aiogram-bot` (второй) — CODING_STANDARDS, CODEBASE_MAP, QA, Docker/CI, .env.example, стековые субагенты/скиллы
-  - [ ] 5.2: Пресеты `fastapi`, `nextjs`
-  - [ ] 5.3: `brain.py upgrade` — обновление шаблонов без затирания пользовательских данных (3-way: шаблон/пользователь/генератор)
-  - [ ] 5.4: Упаковка: `pyproject.toml`, entry point `brain`, `pipx/uvx brain`, CI-матрица Python 3.9–3.15
+- [x] **Этап 5: Пресеты стека + пакет**
+  - [x] 5.1: `brain.py init --preset <имя>` / `brain.py preset <имя>` — пресеты `django-drf` (CODING_STANDARDS, CODEBASE_MAP, QA, .env.example, docker-compose, CI, агенты django-migration-reviewer/drf-api-designer, скиллы new-drf-endpoint/celery-task/db-migration) и `aiogram-bot` (CODING_STANDARDS, CODEBASE_MAP, QA, .env.example, docker-compose, CI, агент aiogram-handler-writer, скиллы telegram-bot-handler/celery-task)
+  - [x] 5.2: Пресеты `fastapi` (агент fastapi-api-designer, скилл fastapi-endpoint) и `nextjs` (агент nextjs-reviewer, скилл nextjs-page)
+  - [x] 5.3: `brain.py upgrade` — 3-way по sha256 в `agents/.preset_lock.json`: нетронутые шаблоны обновляются, правки пользователя сохраняются (перечисляются), история/планы/задачи/баги не трогаются; `init --preset` для новой инициализации
+  - [x] 5.4: Упаковка: `pyproject.toml` v0.4.0, entry point `brain`, package-data (rules/templates/presets/hooks), CI-матрица Python 3.9/3.11/3.13; README (секции пресетов, upgrade, установки пакета); `tests/test_presets.py` (17 тестов)
 - [ ] **Этап 6: Поиск по памяти + свежесть документации**
   - [ ] 6.1: `brain.py search` — SQLite FTS5 (история, баги, ADR, планы)
   - [ ] 6.2: Детектор устаревания в `check`: git-изменения кода без обновления `CODEBASE_MAP.md` → WARN

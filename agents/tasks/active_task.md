@@ -1,6 +1,6 @@
 # 📋 Активная задача: TASK-003 — Исполняемые правила (sync, хуки, субагенты, MCP)
 
-**Статус:** 🔵 IN_PROGRESS (Этапы 0–4 ✅ → Этап 5 ⏭: пресеты django-drf/aiogram-bot + пакет)  
+**Статус:** 🔵 IN_PROGRESS (Этапы 0–5 ✅ → Этап 6 ⏭: поиск FTS5 + детектор устаревания)  
 **Дата создания:** 2026-10-27  
 **Исполнитель:** MiMo (OpenCode)  
 **Приоритет:** HIGH  
@@ -36,7 +36,10 @@
 - [x] **Этап 4: brain-mcp**
   - [x] `agents/mcp/brain_mcp.py` — 6 инструментов (SDK optional, skipIf в тестах)
   - [x] `.mcp.json` — 7 пресетов, секреты `${ENV}`; `pyproject.toml` extra `[mcp]`; README; `tests/test_brain_mcp.py`
-- [ ] **Этап 5: Пресеты django-drf / aiogram-bot + пакет**
+- [x] **Этап 5: Пресеты django-drf / aiogram-bot + пакет**
+  - [x] `agents/presets/` — 4 пресета (django-drf, aiogram-bot, fastapi, nextjs) с агентами и скиллами
+  - [x] `brain.py presets/preset/init --preset/upgrade` + `tests/test_presets.py` (17 тестов)
+  - [x] Упаковка: entry point `brain`, package-data, CI-матрица 3.9/3.11/3.13
 - [ ] **Этап 6: Поиск FTS5 + детектор устаревания**
 - [ ] **Этап 7: Мультиагентность и контекст**
 - [ ] **Этап 8: Документирование и сдача**

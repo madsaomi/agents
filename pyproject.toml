@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "second-brain-template"
-version = "0.3.0"
+version = "0.4.0"
 description = "Second Brain — executable rules, memory and Plan-First workflow for AI coding agents"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -16,9 +16,24 @@ dependencies = []  # stdlib-only by design; extras below
 # Python MCP SDK для сервера brain-mcp (agents/mcp/brain_mcp.py), требуется Python 3.11+
 mcp = ["mcp>=1.2"]
 
+[project.scripts]
+brain = "agents.tools.brain:main"
+
 [project.urls]
 Documentation = "https://github.com/your-org/second-brain-template#readme"
 
-[tool.setuptools]
-# Пакетные данные (шаблоны, конфиги) добавляются на Этапе 5 упаковки
-packages = ["agents.mcp"]
+[tool.setuptools.packages.find]
+include = ["agents*"]
+
+[tool.setuptools.package-data]
+# Шаблоны, пресеты и правила должны попадать в пакет (brain init/preset/sync работают из него)
+"agents" = [
+  "rules/*.md",
+  "templates/**/*.md",
+  "templates/sync/*.tpl",
+  "presets/*/preset.json",
+  "presets/*/files/*",
+  "presets/*/agents/*.md",
+  "presets/*/skills/*/SKILL.md",
+  "tools/hooks/*.py",
+]

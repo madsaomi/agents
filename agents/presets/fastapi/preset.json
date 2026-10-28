@@ -1,0 +1,11 @@
+{
+  "name": "fastapi",
+  "description": "FastAPI + SQLAlchemy 2.0 + PostgreSQL + Redis",
+  "files": [
+    { "src": "files/CODING_STANDARDS.md", "dst": "agents/rules/CODING_STANDARDS.md" },
+    { "src": "files/CODEBASE_MAP.md", "dst": "agents/architecture/CODEBASE_MAP.md" },
+    { "src": "files/env.example", "dst": ".env.example" },
+    { "src": "agents/fastapi-api-designer.md", "dst": ".claude/agents/fastapi-api-designer.md" },
+    { "src": "skills/fastapi-endpoint/SKILL.md", "dst": ".claude/skills/fastapi-endpoint/SKILL.md" }
+  ]
+}
