@@ -35,9 +35,10 @@ Second Brain Template/
 │   ├── rules/CORE_RULES.md         # 📜 Канон правил (единый источник для sync)
 │   ├── templates/sync/*.tpl        # 📜 Шаблоны конфигов AI-инструментов
 │   ├── tools/                      # 🛠️ Исполняемые инструменты (stdlib-only)
-│   │   ├── brain.py                # Диспетчер CLI (status/plan/bug/sync/search/preset/upgrade/...)
+│   │   ├── brain.py                # Диспетчер CLI (status/plan/bug/sync/search/preset/upgrade/claim/...)
 │   │   ├── check_integrity.py      # Проверка целостности (10 секций)
 │   │   ├── search.py               # 🔍 Полнотекстовый поиск памяти (SQLite FTS5)
+│   │   ├── locks.py                # 🤝 Блокировки задач claim/release + git worktree (мультиагентность)
 │   │   ├── new_plan.py / end_session.py / dump_context.py / init_project.py
 │   │   └── hooks/                  # Хуки Claude Code (gate, context, lint, session log)
 │   ├── mcp/brain_mcp.py            # 🧩 MCP-сервер (6 инструментов, optional extra [mcp])
@@ -63,6 +64,8 @@ Second Brain Template/
 | `agents/tools/brain.py` | Единый CLI-диспетчер | `main()`, `sync_tools()`, `apply_preset()`, `upgrade_tool()`, `_detect_project_root()` | `brain.py --help`, тесты всех подкоманд |
 | `agents/rules/CORE_RULES.md` | 📜 Канон правил проекта | 11 правил (вкл. prompt-injection) | `python brain.py sync --check` — конфиги перегенерированы |
 | `agents/tools/search.py` | 🔍 Поиск по памяти (FTS5) | `index_memory()`, `search_memory()`, `_fts_query()` | `tests/test_search.py`; индекс `.brain_index.db` в .gitignore |
+| `agents/tools/locks.py` | 🤝 Блокировки задач (мультиагентность) | `claim_task()`, `release_task()`, `list_claims()`, `_lock_status()` (heartbeat-TTL) | `tests/test_claim.py`; локи `agents/tasks/.locks/` в .gitignore |
+| `agents/tools/dump_context.py` | 📦 Контекст для веб-чатов (+ `--budget`) | `build_context_dump(root, budget)`, `_compact()`, `estimate_tokens()` | `tests/test_dump_budget.py`; бюджет держит ядро «статус+задача» |
 | `agents/tools/check_integrity.py` | Целостность системы (10 секций) | `run_integrity_check(fix=)` | Запуск без ошибок; fail-soft без git |
 | `agents/tools/hooks/*.py` | Исполняемые хуки Claude Code | `pre_tool_gate`, `inject_context`, `post_edit_lint`, `session_log` | `tests/test_hooks.py` (17 сценариев) |
 | `agents/mcp/brain_mcp.py` | MCP-инструменты памяти | `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session` | `tests/test_brain_mcp.py`; формат `.mcp.json` |

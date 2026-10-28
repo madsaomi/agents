@@ -1,6 +1,6 @@
 # 📐 План реализации: PLAN-003 — Исполняемые правила: sync, хуки, субагенты, skills, MCP
 
-> **Статус:** 🔵 IN_PROGRESS (Этап 0)  
+> **Статус:** ✅ COMPLETED (все 8 этапов выполнены, сдан в walkthrough_003)  
 > **Дата создания:** 2026-10-27  
 > **Автор / Агент:** MiMo (OpenCode)  
 > **Связанная задача:** [TASK-003](../tasks/active_task.md)  
@@ -109,9 +109,9 @@
   - [x] 7.1: `brain.py claim/release/claims` — атомарные файловые локи `agents/tasks/.locks/*.lock` (O_CREAT|O_EXCL), heartbeat-TTL 45 мин (`BRAIN_LOCK_TTL_MINUTES`) вместо PID (команда claim завершается сразу — живость по свежести heartbeat), протухшие локи перехватываются без force, `--force` для чужих, git worktree: `claim --worktree` (создание `task/<slug>` + пути), `release --worktree` (удаление только чистого); `tests/test_claim.py` (14 тестов, вкл. параллельный гон из 3 процессов)
   - [x] 7.2: `dump --budget N` — грубая оценка токенов (~3 симв), автосуммаризация секций (структура вместо прозы), отсечение низкоприоритетных (глоссарий→правила→PRD→…), ядро «статус+задача» удерживается, итеративное усечение в крайнем случае; `tests/test_dump_budget.py` (9 тестов)
   - [x] 7.3: Правило prompt injection (п. 10) — уже в каноне `CORE_RULES.md` с Этапа 1.1, прошло в 5 конфигов через sync (проверено drift-чеком)
-- [ ] **Этап 8: Документирование и сдача**
-  - [ ] 8.1: Обновить `CODEBASE_MAP.md`, `README.md`, `STATUS.md`
-  - [ ] 8.2: Walkthrough + фиксация сессии
+- [x] **Этап 8: Документирование и сдача**
+  - [x] 8.1: Обновлены `CODEBASE_MAP.md` (структура под tools/hooks/mcp/presets/search, мерmaid-граф), `README.md` (быстрый старт, sync/поиск/пресеты/upgrade/пакет/MCP/мультиагентность), `STATUS.md` (итоговая таблица подсистем)
+  - [x] 8.2: Walkthrough `walkthrough_003_executable_rules.md` + фиксация сессии в `agents/history/` (append-only)
 
 ---
 

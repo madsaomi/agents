@@ -1,6 +1,6 @@
 # 📋 Активная задача: TASK-003 — Исполняемые правила (sync, хуки, субагенты, MCP)
 
-**Статус:** 🔵 IN_PROGRESS (Этапы 0–7 ✅ → Этап 8 ⏭: документирование, walkthrough, фиксация сессии)  
+**Статус:** ✅ COMPLETED (Этапы 0–8 выполнены, сдан в `walkthrough_003`)  
 **Дата создания:** 2026-10-27  
 **Исполнитель:** MiMo (OpenCode)  
 **Приоритет:** HIGH  
@@ -48,7 +48,10 @@
   - [x] `brain.py claim/release/claims` — атомарные локи + heartbeat-TTL + git worktree; `tests/test_claim.py` (14)
   - [x] `dump --budget N` — автосуммаризация/приоритетное отсечение под лимит токенов; `tests/test_dump_budget.py` (9)
   - [x] 7.3 prompt-injection — уже в каноне с Этапа 1 (п. 10)
-- [ ] **Этап 8: Документирование и сдача**
+- [x] **Этап 8: Документирование и сдача**
+  - [x] `STATUS.md`, `README.md`, `CODEBASE_MAP.md` актуализированы
+  - [x] `walkthrough_003_executable_rules.md` — отчёт о сдаче
+  - [x] Фиксация сессии в `agents/history/` (append-only)
 
 ---
 
