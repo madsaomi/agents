@@ -1,30 +1,29 @@
-# 📋 Активная задача: TASK-005 — Связи памяти `[[...]]` и теги
+# 📋 Активная задача: TASK-006 — Кросстулумность: Codex и OpenCode
 
-**Статус:** ✅ COMPLETED (Этапы 1–4 выполнены)  
-**Дата создания:** 2026-10-28  
+**Статус:** ✅ COMPLETED (Завершена)  
+**Дата создания:** 2026-10-29  
+**Дата завершения:** 2026-10-29  
 **Исполнитель:** MiMo (OpenCode)  
-**Приоритет:** MEDIUM  
-**Связанный план:** [`PLAN-005`](../plans/plan_005_links_and_tags.md)  
-**Предыдущая задача:** [TASK-004 ✅](archive/task_004_completed.md) (секрет-сканер, stats, tour)
+**Приоритет:** HIGH  
+**Связанный план:** [`PLAN-006`](../plans/plan_006_codex_opencode.md)  
+**Архив:** [`task_006_completed.md`](archive/task_006_completed.md)  
 
 ---
 
-## 🎯 Цель задачи
-Сделать записи памяти связными: вики-ссылки `[[BUG-001]]` между планами/багами/ADR/сессиями с проверкой разрешения и обратными ссылками (`brain.py links`), frontmatter-теги с фильтрами поиска (`--tag`, `--since`) и облаком тегов в `stats`. Направление утверждено заказчиком 2026-10-28.
+## Итог
 
----
+`brain.py sync` рендерит исполняемые правила для всех 4 инструментов: Codex (`.codex/hooks.json`,
+`.agents/skills/`), OpenCode (`opencode.jsonc`, `.opencode/{commands,agents,skills}`,
+плагин `second_brain` — Plan-First-гейт через `permission.evaluate`, fail-open). Хуки
+`pre_tool_gate`/`post_edit_lint` расширены под `apply_patch` Codex. 214 тестов, integrity 0/0,
+`sync --check` чист.
 
-## 📌 Пошаговый чек-лист выполнения:
+## Открытые пункты
 
-- [x] **Этап 1: Вики-связи** (`links.py`, `brain links [--unresolved]`, `tests/test_links.py`)
-- [x] **Этап 2: Теги и фильтры поиска** (`parse_tags`, колонка `docs.tags` + миграция, `--tag`/`--since`)
-- [x] **Этап 3: Интеграция и документирование** (stats: битые `[[...]]` + облако тегов; README/CODEBASE_MAP)
-- [x] **Этап 4: Верификация и сдача** (тесты, 0/0 integrity, STATUS, `brain end`, коммит)
+- [ ] Живой смоук Codex `/hooks` (trust-review) — CLI не установлен на машине разработчика.
+- [ ] MCP-инструменты `list_links` / `list_claims` / `get_stats` — кандидат в PLAN-007.
 
----
+## Следующая задача
 
-## 🧪 Критерии готовности (Definition of Done):
-1. `python brain.py links <ID>` — исходящие/входящие/неразрешённые; `--unresolved` — список битых связей памяти; плейсхолдеры `[[...]]` не считаются ошибками.
-2. `python brain.py search "..." --tag X [--tag Y] --since YYYY-MM-DD` — фильтры работают со старым индексом (авто-миграция) и с FTS.
-3. `python brain.py stats` показывает битые `[[связи]]` и top-теги.
-4. Тесты зелёные (146 + новые), `check_integrity` — 0/0, `sync --check` чист; README/CODEBASE_MAP/STATUS обновлены.
+- Определяется заказчиком/агентом при входе в проект (кандидаты: MCP-инструменты связей, PyPI v0.5.0,
+  `brain digest`/`brain graph`, doctor).

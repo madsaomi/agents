@@ -119,10 +119,10 @@ python agents/tools/install_hooks.py
 
 6. **Синхронизация конфигов AI-инструментов:**
    ```bash
-   python brain.py sync          # сгенерировать CLAUDE.md, .cursorrules, .windsurfrules и др.
+   python brain.py sync          # сгенерировать конфиги Claude/Cursor/Windsurf/Copilot + Codex + OpenCode
    python brain.py sync --check  # только проверить дрейф (exit 1 — в CI)
    ```
-   `CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md` и `.cursor/rules/second-brain.mdc` генерируются из единого канона `agents/rules/CORE_RULES.md`. **Правь только канон**, сгенерированные файлы не редактируются вручную.
+   `CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md`, `.cursor/rules/second-brain.mdc`, `.codex/hooks.json` и `opencode.jsonc` (+ команды/агенты/скиллы `.opencode/`) генерируются из единого канона `agents/rules/CORE_RULES.md` и `.claude/`. **Правь только канон**, сгенерированные файлы не редактируются вручную. Подробнее — раздел [🌐 Кросстулумность](#-кросстулумность-codex-и-opencode).
 
 7. **Поиск по долговременной памяти (FTS5):**
    ```bash
@@ -163,6 +163,37 @@ python agents/mcp/brain_mcp.py   # запуск сервера (stdio)
 ```
 
 В `.mcp.json` в корне лежат пресеты подключения: **brain** (этот сервер), **filesystem**, **github**, **postgres** (read-only), **context7** (документация библиотек), **playwright**, **sentry**. Claude Code запросит подтверждение проектных серверов при старте; отключи ненужные через `/mcp`. Секреты задаются только через переменные окружения (`${GITHUB_TOKEN}` и т.п.) — в репозиторий значения не попадают.
+
+---
+
+## 🌐 Кросстулумность: Codex и OpenCode
+
+`brain.py sync` рендерит исполняемые правила для **всех** поддерживаемых инструментов из одного канона (`agents/rules/CORE_RULES.md` + `.claude/`):
+
+| Инструмент | Что генерирует `sync` | Исполняемые правила |
+|---|---|---|
+| Claude Code / Cursor / Windsurf / Copilot | 5 конфигов (`CLAUDE.md`, `.cursorrules`, …) | `.claude/settings.json` → хуки Python |
+| **Codex** | `.codex/hooks.json` + `.agents/skills/*/SKILL.md` (5 скиллов) | Те же 4 хука Python через `$(git rev-parse --show-toplevel)` |
+| **OpenCode** | `opencode.jsonc` (7 MCP), `.opencode/commands/` (6), `.opencode/agents/` (7), `.opencode/skills/` (5), `.opencode/plugins/second_brain/index.ts` | Плагин → тот же `pre_tool_gate.py` |
+
+### Codex
+
+- **Правила** — `AGENTS.md` в корне (Codex читает его автоматически). Промпты-команды Codex больше не поддерживают `.codex/prompts/` (deprecated) — используйте скиллы.
+- **Скиллы** — зеркалятся в `.agents/skills/<name>/SKILL.md` (канон — `.claude/skills/`).
+- **Хуки** — `.codex/hooks.json`: Plan-First-гейт, запрет чтения секретов, линт после правки, журнал сессии. Формат хуков идентичен Claude Code (`permissionDecision: deny`), поэтому переиспользуются те же python-скрипты.
+- **⚠️ Первый шаг после `sync`:** Codex требует trust-review хуков — выполни `/hooks` в CLI и подтверди определения, иначе хуки будут пропускаться (защита просто не включится, сессия работает).
+
+### OpenCode
+
+- **Конфиг** — `opencode.jsonc` в корне: `$schema`, `mcp.servers` (те же 7 серверов, что `.mcp.json`; секреты — `{env:VAR}`), запреты правки `*.env`/`*.pem`/`*.key` (`.env.example` разрешён).
+- **Команды** — `.opencode/commands/*.md`, вызываются как `/plan`, `/bug` и т.д. Тело шаблона и `$ARGUMENTS` общие с Claude Code, поэтому трансформируются автоматически.
+- **Сабагенты** — `.opencode/agents/*.md` (`mode: subagent`); read-only агенты (planner, reviewer, security-auditor) получают `permissions: deny edit/shell`.
+- **Скиллы** — `.opencode/skills/*/SKILL.md`, зеркала канона.
+- **Плагин** — `.opencode/plugins/second_brain/index.ts` подключает тот же `pre_tool_gate.py` к `permission.evaluate`: правка кода без активного плана и чтение секретов блокируются с причиной из `agents/rules/ANTI_PATTERNS.md`. Ошибка гейта — fail-open (как у Claude-хуков).
+
+Проверка: `opencode plugin list` (second_brain), `opencode mcp list` (7 серверов), `opencode debug agents` (7 сабагентов).
+
+> Всё сгенерированное правится только через `python brain.py sync` — ручная правка = дрейф, который ловит `sync --check` в CI.
 
 ---
 

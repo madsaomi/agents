@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-PreToolUse-хук Claude Code: принудительный Plan-First + защита секретов и деструктивных команд.
+PreToolUse-хук Claude Code и Codex: принудительный Plan-First + защита секретов и деструктивных команд.
 
-Регистрация: .claude/settings.json → PreToolUse (мэтчеры Edit|Write, Read, Bash|PowerShell).
-Вход: JSON события на stdin (см. code.claude.com/docs/en/hooks).
+Регистрация: .claude/settings.json → PreToolUse (мэтчеры Edit|Write, Read, Bash|PowerShell);
+             .codex/hooks.json → PreToolUse (мэтчер Edit|Write|apply_patch|Read|Bash).
+Вход: JSON события на stdin (одинаковый контракт у Claude Code и Codex:
+      tool_name / tool_input.command / tool_input.file_path).
+Codex присылает правки как tool_name="apply_patch" c патчем в tool_input.command —
+пути извлекаются из строк "*** Update File: ..." и т.п.
 Отказ: JSON hookSpecificOutput.permissionDecision=deny на stdout, exit 0.
 Логика fail-open: любая внутренняя ошибка -> exit 0 (не блокируем сессию).
 """
@@ -33,6 +37,11 @@ SECRET_FILE_RE = re.compile(
     r"(^|[/\\])id_(rsa|ed25519|ecdsa)(\.pub)?$"
 )
 SECRET_EXEMPT_RE = re.compile(r"\.env\.example$|\.env\.sample$")
+
+# Пути внутри unified-патча Codex (apply_patch): "*** Update File: src/x.py" и т.п.
+APPLY_PATCH_PATH_RE = re.compile(
+    r"^\*\*\* (?:Update|Add|Delete|Move(?: to)?) File:\s*(\S+)\s*$", re.MULTILINE
+)
 
 # Деструктивные / опасные shell-команды
 DANGEROUS_BASH = [
@@ -108,30 +117,38 @@ def main() -> int:
                 return 0
             return 0
 
-        # --- Edit / Write / NotebookEdit ---
-        if tool in ("Edit", "Write", "NotebookEdit"):
-            fp = str(tool_input.get("file_path", ""))
-            if SECRET_FILE_RE.search(fp) and not SECRET_EXEMPT_RE.search(fp):
-                deny(f"Правка секретов запрещена: {fp}. В репозиторий идёт только .env.example.")
-                return 0
+        # --- Edit / Write / NotebookEdit (Claude) и apply_patch (Codex) ---
+        if tool in ("Edit", "Write", "NotebookEdit", "apply_patch"):
+            if tool == "apply_patch":
+                fp_list = APPLY_PATCH_PATH_RE.findall(str(tool_input.get("command", "")))
+            else:
+                fp_list = [str(tool_input.get("file_path", ""))]
+            if not fp_list:
+                return 0  # патч без путей (не наш формат) — fail-open
+
+            for fp in fp_list:
+                if SECRET_FILE_RE.search(fp) and not SECRET_EXEMPT_RE.search(fp):
+                    deny(f"Правка секретов запрещена: {fp}. В репозиторий идёт только .env.example.")
+                    return 0
 
             # Plan-First: код и конфиги требуют активного плана; документация/планы/задачи — нет
-            p = Path(fp)
-            if p.is_absolute():
-                try:
-                    rel = p.relative_to(root).as_posix()
-                except ValueError:
-                    rel = p.name
-            else:
-                rel = p.as_posix()
-            is_documentation = p.suffix.lower() in (".md", ".mdc") or rel.startswith("agents/")
-            if not is_documentation and not has_active_plan(root):
-                deny(
-                    "Plan-First: нет активного плана (agents/plans/plan_*.md со статусом DRAFT/APPROVED/IN_PROGRESS "
-                    "или незакрытых шагов в agents/tasks/active_task.md). "
-                    "Создай план: python brain.py plan \"<название>\" — затем повтори операцию."
-                )
-                return 0
+            for fp in fp_list:
+                p = Path(fp)
+                if p.is_absolute():
+                    try:
+                        rel = p.relative_to(root).as_posix()
+                    except ValueError:
+                        rel = p.name
+                else:
+                    rel = p.as_posix()
+                is_documentation = p.suffix.lower() in (".md", ".mdc") or rel.startswith("agents/")
+                if not is_documentation and not has_active_plan(root):
+                    deny(
+                        f"Plan-First: нет активного плана (правка {fp}; agents/plans/plan_*.md со статусом DRAFT/APPROVED/IN_PROGRESS "
+                        "или незакрытых шагов в agents/tasks/active_task.md). "
+                        "Создай план: python brain.py plan \"<название>\" — затем повтори операцию."
+                    )
+                    return 0
             return 0
 
         return 0

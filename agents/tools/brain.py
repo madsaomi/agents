@@ -345,12 +345,83 @@ SYNC_SPECS = [
     (SYNC_TEMPLATES_DIR / ".windsurfrules.tpl", PROJECT_ROOT / ".windsurfrules"),
     (SYNC_TEMPLATES_DIR / "copilot-instructions.md.tpl", PROJECT_ROOT / ".github" / "copilot-instructions.md"),
     (SYNC_TEMPLATES_DIR / "second-brain.mdc.tpl", PROJECT_ROOT / ".cursor" / "rules" / "second-brain.mdc"),
+    (SYNC_TEMPLATES_DIR / "hooks.json.tpl", PROJECT_ROOT / ".codex" / "hooks.json"),
+    (SYNC_TEMPLATES_DIR / "opencode.jsonc.tpl", PROJECT_ROOT / "opencode.jsonc"),
 ]
 # Зеркалирование скиллов между экосистемами (канон → зеркало), без подстановки {{CORE_RULES}}
+# Codex читает скиллы из .agents/skills/<name>/SKILL.md, OpenCode — из .opencode/skills/<name>/SKILL.md
 SYNC_MIRRORS = [
     (PROJECT_ROOT / ".claude" / "skills" / "second-brain" / "SKILL.md",
      AGENTS_DIR.parent / ".agents" / "skills" / "second_brain" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "adr-writer" / "SKILL.md",
+     AGENTS_DIR.parent / ".agents" / "skills" / "adr-writer" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "bug-triage" / "SKILL.md",
+     AGENTS_DIR.parent / ".agents" / "skills" / "bug-triage" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "release-checklist" / "SKILL.md",
+     AGENTS_DIR.parent / ".agents" / "skills" / "release-checklist" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "session-handoff" / "SKILL.md",
+     AGENTS_DIR.parent / ".agents" / "skills" / "session-handoff" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "second-brain" / "SKILL.md",
+     AGENTS_DIR.parent / ".opencode" / "skills" / "second-brain" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "adr-writer" / "SKILL.md",
+     AGENTS_DIR.parent / ".opencode" / "skills" / "adr-writer" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "bug-triage" / "SKILL.md",
+     AGENTS_DIR.parent / ".opencode" / "skills" / "bug-triage" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "release-checklist" / "SKILL.md",
+     AGENTS_DIR.parent / ".opencode" / "skills" / "release-checklist" / "SKILL.md"),
+    (PROJECT_ROOT / ".claude" / "skills" / "session-handoff" / "SKILL.md",
+     AGENTS_DIR.parent / ".opencode" / "skills" / "session-handoff" / "SKILL.md"),
 ]
+
+
+# Трансформы Claude -> OpenCode: команды и агенты (тело промпта общее, $ARGUMENTS общий)
+def _opencode_transform_specs():
+    specs = []
+    for src_dir, kind in (("commands", "command"), ("agents", "agent")):
+        for src in sorted((PROJECT_ROOT / ".claude" / src_dir).glob("*.md")):
+            specs.append((src, PROJECT_ROOT / ".opencode" / src_dir / src.name, kind))
+    return specs
+
+
+def transform_opencode_md(text: str, kind: str) -> str:
+    """
+    Трансформа frontmatter Claude-агента/команды в формат OpenCode V2.
+    command: остаётся description (тело не трогаем — $ARGUMENTS общий с Claude).
+    agent: description + mode: subagent; read-only набор инструментов -> permissions: deny edit/shell.
+    Поля name/tools/model/argument-hint/allowed-tools выбрасываются (V2 deprecated/невалидно).
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return text  # без frontmatter — отдаём как есть
+    try:
+        end = 1 + lines[1:].index("---")
+    except ValueError:
+        return text
+    fm, body = lines[1:end], "\n".join(lines[end + 1:])
+
+    fm_lines = [l for l in fm if l.strip()]
+    desc = [l for l in fm_lines if l.strip().startswith("description:")]
+    out = ["---"] + desc
+
+    if kind == "agent":
+        out.append("mode: subagent")
+        tools_raw = next((l.split(":", 1)[1].strip() for l in fm_lines
+                          if l.strip().startswith("tools:")), "")
+        toolset = {t.strip() for t in tools_raw.split(",") if t.strip()}
+        can_edit = bool({"Write", "Edit", "NotebookEdit"} & toolset)
+        can_shell = "Bash" in toolset
+        if not can_edit or not can_shell:
+            out.append("permissions:")
+            if not can_edit:
+                out += ["  - action: edit", '    resource: "*"', "    effect: deny"]
+            if not can_shell:
+                out += ["  - action: shell", '    resource: "*"', "    effect: deny"]
+
+    out += ["---", "", body.strip(), ""]
+    return "\n".join(out)
+
+
+SYNC_TRANSFORMS = _opencode_transform_specs()
 
 
 def _read_norm(path: Path) -> str:
@@ -377,6 +448,8 @@ def render_sync_configs():
         rendered.append((tpl, target, body.replace("{{CORE_RULES}}", core)))
     for src, target in SYNC_MIRRORS:
         rendered.append((src, target, _read_norm(src)))
+    for src, target, kind in SYNC_TRANSFORMS:
+        rendered.append((src, target, transform_opencode_md(_read_norm(src), kind)))
     return rendered
 
 
@@ -411,15 +484,17 @@ def sync_tools(check: bool = False) -> int:
                 print(f"   • {rel}")
             print(f"   Запусти: {GREEN}python brain.py sync{RESET}")
             return 1
-        print(f"{GREEN}✅ sync --check: все {len(SYNC_SPECS)} конфигов и {len(SYNC_MIRRORS)} зеркало соответствуют канону.{RESET}")
+        print(f"{GREEN}✅ sync --check: все {len(SYNC_SPECS)} конфигов, {len(SYNC_MIRRORS)} зеркало "
+              f"и {len(SYNC_TRANSFORMS)} трансформ соответствуют канону.{RESET}")
         return 0
 
     if not drifted:
-        print(f"{GREEN}✅ Файлы уже актуальны ({len(SYNC_SPECS)} конфигов + {len(SYNC_MIRRORS)} зеркало), дрейф не обнаружен.{RESET}")
+        print(f"{GREEN}✅ Файлы уже актуальны ({len(SYNC_SPECS)} конфигов + {len(SYNC_MIRRORS)} зеркало "
+              f"+ {len(SYNC_TRANSFORMS)} трансформ), дрейф не обнаружен.{RESET}")
         return 0
     for rel in written:
         print(f"  ✓ Сгенерирован: {rel}")
-    print(f"{GREEN}🎉 Синхронизировано файлов: {len(written)}. Источник: agents/rules/CORE_RULES.md + .claude/skills/{RESET}")
+    print(f"{GREEN}🎉 Синхронизировано файлов: {len(written)}. Источник: agents/rules/CORE_RULES.md + .claude/{RESET}")
     return 0
 
 # -----------------------------------------------------------------------------
