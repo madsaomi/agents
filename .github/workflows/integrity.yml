@@ -39,3 +39,7 @@ jobs:
       - name: Run Integrity Checker
         run: |
           python agents/tools/check_integrity.py
+
+      - name: Run Environment Doctor (PLAN-008)
+        run: |
+          python brain.py doctor --json

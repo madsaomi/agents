@@ -18,6 +18,7 @@ python brain.py plan "Feature Name" # 📐 Создать план реализ�
 python brain.py bug "Error Title"   # 🐛 Зафиксировать ошибку в базе знаний
 python brain.py adr "Choice Title"  # 🏛️ Зафиксировать архитектурное решение (ADR)
 python brain.py check               # 🧠 Проверить целостность Второго Мозга (--fix для автопочинки)
+python brain.py doctor [--json]     # 🩺 Диагностика окружения (Python, FTS5, git, индекс, буфер, [mcp])
 python brain.py stats [--json]      # 📊 Дашборд здоровья памяти (битые ссылки, устаревшее, локи)
 python brain.py tour [--list]       # 🧭 Интерактивный гид для нового пользователя
 python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md

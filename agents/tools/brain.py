@@ -104,7 +104,7 @@ TOUR_SCREENS = [
      "  MCP-инструменты: pip install \".[mcp]\" → python agents/mcp/brain_mcp.py\n"
      "  Пресеты стека:   python brain.py preset django-drf | fastapi | nextjs | aiogram-bot\n"
      "  Обновление:      python brain.py upgrade (не затирает ваши правки)\n"
-     "  Проверка:        python brain.py check [--fix]"),
+     "  Проверка:        python brain.py check [--fix] · python brain.py doctor (окружение)"),
     ("7/7 ✅ Готово!",
      "Начни с agents/STATUS.md и agents/tasks/active_task.md.\n"
      "Полный гайд: AGENTS.md · README.md · agents/AGENT_GUIDE.md\n"
@@ -122,6 +122,7 @@ import search as memory_search
 import locks as task_locks
 import stats as memory_stats
 import links as memory_links
+import doctor as env_doctor
 
 # -----------------------------------------------------------------------------
 # Вспомогательные функции нумерации
@@ -714,6 +715,10 @@ def main():
     tour_parser = subparsers.add_parser("tour", help="Интерактивный гид для нового пользователя")
     tour_parser.add_argument("--list", action="store_true", help="Печатать все экраны сразу (без интерактива)")
 
+    # doctor (PLAN-008)
+    doctor_parser = subparsers.add_parser("doctor", help="Диагностика окружения: Python, FTS5, git, индекс, буфер, [mcp]")
+    doctor_parser.add_argument("--json", action="store_true", help="JSON-вывод для машинного чтения")
+
     # links (PLAN-005)
     links_parser = subparsers.add_parser("links", help="Вики-связи [[...]]: исходящие, обратные ссылки")
     links_parser.add_argument("query", nargs="?", default="", help="ID/имя записи (напр. BUG-001)")
@@ -891,6 +896,14 @@ def main():
         else:
             print(memory_stats.format_stats(stats))
         sys.exit(0)
+
+    elif args.command == "doctor":
+        report = env_doctor.collect_doctor(root=PROJECT_ROOT)
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            print(env_doctor.format_doctor(report))
+        sys.exit(1 if report["summary"]["errors"] else 0)
 
     elif args.command == "tour":
         screens = TOUR_SCREENS
