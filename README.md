@@ -155,6 +155,9 @@ python agents/tools/install_hooks.py
 | `search_memory` | Поиск по памяти (баги, история, ADR, планы) |
 | `complete_task` | Отметить шаг `[x]` в `active_task.md` |
 | `end_session` | Создать запись сессии в `agents/history/` |
+| `list_links` | Вики-связи `[[...]]`: сводка битых, исходящие и обратные ссылки |
+| `list_claims` | Активные локи claim (мультиагентность) |
+| `get_stats` | Дашборд здоровья памяти (`as_json` — для машин) |
 
 **Установка** (требует Python 3.11+, сама опциональна — ядро шаблона остаётся stdlib-only):
 ```bash

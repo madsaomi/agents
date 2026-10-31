@@ -52,11 +52,14 @@ def make_project() -> Path:
 
 
 class TestToolSurface(unittest.TestCase):
-    """Состав инструментов должен соответствовать спецификации PLAN-003."""
+    """Состав инструментов должен соответствовать спецификации PLAN-003/PLAN-007."""
 
-    EXPECTED = {"get_status", "create_plan", "log_bug", "search_memory", "complete_task", "end_session"}
+    EXPECTED = {
+        "get_status", "create_plan", "log_bug", "search_memory", "complete_task", "end_session",
+        "list_links", "list_claims", "get_stats",
+    }
 
-    def test_all_six_tools_present(self):
+    def test_all_nine_tools_present(self):
         present = {fn.__name__ for fn in brain_mcp.TOOL_FUNCTIONS}
         self.assertEqual(present, self.EXPECTED)
 
@@ -140,6 +143,119 @@ class TestGetStatus(unittest.TestCase):
         self.assertTrue(out)
         self.assertNotIn("\x1b[", out)
         self.assertIn("Проект", out)
+
+
+class TestListLinks(unittest.TestCase):
+    """PLAN-007: list_links — вики-связи [[...]] без дублирования парсинга."""
+
+    def setUp(self):
+        self.root = make_project()
+        (self.root / "agents" / "plans").mkdir(parents=True, exist_ok=True)
+        (self.root / "agents" / "plans" / "plan_999_links.md").write_text(
+            "# План\nСм. [[BUG-001]] и [[MISSING-999]] для контекста.\n",
+            encoding="utf-8",
+        )
+        (self.root / "agents" / "bugs_and_fixes" / "BUG_001.md").write_text(
+            (self.root / "agents" / "bugs_and_fixes" / "BUG_001.md").read_text(encoding="utf-8")
+            + "См. [[plan_999_links|план]]\n",
+            encoding="utf-8",
+        )
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_empty_query_summary_counts_broken(self):
+        out = brain_mcp.list_links(root=self.root)
+        self.assertIn("🔗 Связи памяти:", out)
+        self.assertIn("разрешённых", out)
+        self.assertIn("1 битых", out)  # [[MISSING-999]]
+        self.assertIn("MISSING-999", out)  # битая связь перечислена
+
+    def test_query_shows_outgoing_and_backlinks(self):
+        out = brain_mcp.list_links("BUG-001", root=self.root)
+        self.assertIn("🔗 Связи для", out)
+        self.assertIn("➡️ Исходящие", out)
+        self.assertIn("⬅️ Обратные ссылки", out)
+        self.assertIn("plan_999_links.md", out)  # файл с обратной ссылкой на BUG-001
+
+    def test_unknown_query_marks_not_found(self):
+        out = brain_mcp.list_links("NOPE-4242", root=self.root)
+        self.assertIn("❓ Запись не найдена: 'NOPE-4242'", out)
+
+    def test_broken_target_hint(self):
+        """Запись не найдена, но есть битые связи с такой целью — подсказка."""
+        out = brain_mcp.list_links("MISSING-999", root=self.root)
+        self.assertIn("❓ Запись не найдена", out)
+        self.assertIn("Но есть битые связи с такой целью", out)
+
+    def test_accepts_root_override(self):
+        import inspect
+        self.assertIn("root", inspect.signature(brain_mcp.list_links).parameters)
+
+
+class TestListClaims(unittest.TestCase):
+    """PLAN-007: list_claims — активные локи claim (мультиагентность)."""
+
+    def setUp(self):
+        self.root = make_project()
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_no_locks_reports_free(self):
+        out = brain_mcp.list_claims(root=self.root)
+        self.assertEqual(out, "Свободно: активных блокировок нет.")
+
+    def test_shows_claim_with_status_marker(self):
+        import locks
+        ok, msg = locks.claim_task("TASK-999", agent="TestAgent", root=self.root)
+        self.assertTrue(ok, msg)
+        out = brain_mcp.list_claims(root=self.root)
+        self.assertIn("🔒 Активные блокировки (1):", out)
+        self.assertIn("TASK-999", out)
+        self.assertIn("TestAgent", out)
+        self.assertIn("🟢", out)  # PID тестового процесса жив → active
+
+    def test_accepts_root_override(self):
+        import inspect
+        self.assertIn("root", inspect.signature(brain_mcp.list_claims).parameters)
+
+
+class TestGetStats(unittest.TestCase):
+    """PLAN-007: get_stats — дашборд здоровья памяти (текст / JSON)."""
+
+    def setUp(self):
+        self.root = make_project()
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_text_mode_contains_dashboard_and_sections(self):
+        out = brain_mcp.get_stats(root=self.root)
+        self.assertIn("ДАШБОРД", out)
+        self.assertIn("Раздел", out)
+        self.assertIn("plans", out)
+        self.assertIn("Чек-листы", out)
+
+    def test_json_mode_is_valid_with_expected_keys(self):
+        out = brain_mcp.get_stats(as_json=True, root=self.root)
+        data = json.loads(out)
+        for key in ("sections", "claims", "wiki"):
+            self.assertIn(key, data)
+
+    def test_empty_skeleton_failsoft(self):
+        empty = Path(tempfile.mkdtemp(prefix="brain_mcp_stats_"))
+        try:
+            out = brain_mcp.get_stats(root=empty)
+            self.assertIn("ДАШБОРД", out)  # пустой проект не падает
+        finally:
+            shutil.rmtree(empty, ignore_errors=True)
+
+    def test_accepts_root_override(self):
+        import inspect
+        params = inspect.signature(brain_mcp.get_stats).parameters
+        self.assertIn("root", params)
+        self.assertIn("as_json", params)
 
 
 class TestServerWiring(unittest.TestCase):

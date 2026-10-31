@@ -3,7 +3,7 @@
 **Проект:** Second Brain Template  
 **Описание:** Универсальный шаблон долговременной памяти, регламентов и исполняемых правил для AI-агентов  
 **Технологический стек:** Python 3.9+ (stdlib-only, опциональный extra `[mcp]`), SQLite FTS5, Markdown, Git, Claude Code / Cursor / Windsurf / Antigravity / Codex / OpenCode  
-**Последнее обновление:** 2026-10-29 22:25 (Западная Азия (зима))
+**Последнее обновление:** 2026-10-30 (Западная Азия (зима))  
 **Ответственный агент:** AI Assistant
 **Текущая фаза:** 🟢 PLAN-003…006 закрыты (кросстулумность Codex/OpenCode), проект готов к использованию  
 
@@ -17,14 +17,14 @@
 | **Единый источник правил (`CORE_RULES.md` + sync)** | 🟢 Готово | 11 правил; `brain.py sync [--check]`, дрейф ловит CI |
 | **Исполняемые хуки Claude Code** | 🟢 Готово | Plan-first gate, секрет-гард, инъекция контекста, линт, лог сессии |
 | **Субагенты / скиллы / команды** | 🟢 Готово | 7 агентов, 5 скиллов (+ зеркала Antigravity/Codex/OpenCode), 6 команд |
-| **MCP-сервер `brain-mcp`** | 🟢 Готово | 6 инструментов, `.mcp.json` с 7 пресетами, extra `[mcp]` |
+| **MCP-сервер `brain-mcp`** | 🟢 Готово | 9 инструментов (PLAN-007: +`list_links`/`list_claims`/`get_stats`), `.mcp.json` с 7 пресетами, extra `[mcp]` |
 | **Кросстулумность Codex и OpenCode (PLAN-006)** | 🟢 Готово | `sync` рендерит `.codex/hooks.json` (те же 4 хука, trust-review `/hooks`), `opencode.jsonc` (7 MCP), `.opencode/{commands,agents,skills}` (6+7+5), плагин `second_brain` — Plan-First-гейт через `permission.evaluate` (fail-open) |
 | **Пресеты стека + упаковка** | 🟢 Готово | django-drf / aiogram-bot / fastapi / nextjs; entry point `brain` |
 | **Поиск по памяти (FTS5)** | 🟢 Готово | `brain.py search`, индекс `.brain_index.db`, детектор устаревания карты |
 | **Мультиагентность (claim/release + dump --budget)** | 🟢 Готово | Атомарные локи с heartbeat-TTL, worktree, сжатие контекста под лимит |
 | **Безопасность и дашборд (PLAN-004)** | 🟢 Готово | Секрет-сканер в check/pre-commit/CI, `brain stats [--json]`, GH-аннотации `::error file=`, `brain tour` |
 | **Связи и теги (PLAN-005)** | 🟢 Готово | Вики-связи `[[...]]` + обратные ссылки (`brain links`), frontmatter-теги с авто-миграцией индекса, фильтры `search --tag/--since`, секции в `stats` |
-| **Тесты и CI** | 🟢 Готово | 214 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
+| **Тесты и CI** | 🟢 Готово | 226 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
 | **Документация** | 🟢 Готово | README, CODEBASE_MAP, walkthrough_003, AGENTS.md |
 
 > *Обозначения статусов: 🟢 Готово / Работает | 🟡 В разработке / Требует внимания | 🔴 Заблокировано / Ошибка | ⚪ Не начато*

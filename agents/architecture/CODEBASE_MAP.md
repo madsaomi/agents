@@ -45,7 +45,7 @@ Second Brain Template/
 │   │   ├── stats.py                # 📊 Дашборд здоровья памяти (счётчики, битые ссылки, устаревшее)
 │   │   ├── new_plan.py / end_session.py / dump_context.py / init_project.py
 │   │   └── hooks/                  # Хуки Claude Code (gate, context, lint, session log)
-│   ├── mcp/brain_mcp.py            # 🧩 MCP-сервер (6 инструментов, optional extra [mcp])
+│   ├── mcp/brain_mcp.py            # 🧩 MCP-сервер (9 инструментов, optional extra [mcp])
 │   ├── presets/                    # 🧩 Пресеты стека (django-drf, aiogram-bot, fastapi, nextjs)
 │   ├── plans|tasks|history|bugs_and_fixes|decisions|walkthroughs/  # Память
 │   └── .preset_lock.json           # 🔒 sha256-lock для upgrade (создаётся при preset)
@@ -80,7 +80,7 @@ Second Brain Template/
 | `agents/tools/links.py` | 🔗 Вики-связи `[[...]]` и обратные ссылки | `find_links()`, `links_for()`, `unresolved_links()`, `build_index()` | `tests/test_links.py`; `brain.py links <ID> [--unresolved]`; плейсхолдеры — не ошибки |
 | `agents/tools/hooks/*.py` | Исполняемые хуки Claude Code / Codex / OpenCode-плагина | `pre_tool_gate` (вкл. apply_patch-патчи Codex), `inject_context`, `post_edit_lint`, `session_log` | `tests/test_hooks.py` (17 сценариев); контракт deny — `hookSpecificOutput.permissionDecision` |
 | `.opencode/plugins/second_brain/index.ts` | Plan-First-гейт OpenCode (permission.evaluate → pre_tool_gate, fail-open) | `Plugin.define`, `runGate()`, `buildPayload()` | `tests/test_sync.py::TestPluginFile`; `opencode plugin list`; deny читается из stdout гейта |
-| `agents/mcp/brain_mcp.py` | MCP-инструменты памяти | `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session` | `tests/test_brain_mcp.py`; формат `.mcp.json` |
+| `agents/mcp/brain_mcp.py` | MCP-инструменты памяти | `get_status`, `create_plan`, `log_bug`, `search_memory`, `complete_task`, `end_session`, `list_links`, `list_claims`, `get_stats` | `tests/test_brain_mcp.py`; формат `.mcp.json` |
 | `agents/presets/*/preset.json` | Манифесты пресетов стека | `files[]` (src → dst) | `tests/test_presets.py`; секретов в env.example нет |
 | `agents/templates/sync/*.tpl` | Шаблоны 7 конфигов AI-инструментов | плейсхолдеры `{{...}}`; JSON-шаблоны Codex/OpenCode без маркера | `brain.py sync` — дрейф отсутствует |
 | `brain.py::transform_opencode_md` | Трансформа Claude → OpenCode (команды/агенты) | description + `mode: subagent`, read-only → deny permissions | `tests/test_sync.py::TestTransformOpencodeMd`; `$ARGUMENTS` сохраняется |

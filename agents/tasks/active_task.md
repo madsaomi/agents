@@ -21,7 +21,7 @@
 ## Открытые пункты
 
 - [ ] Живой смоук Codex `/hooks` (trust-review) — CLI не установлен на машине разработчика.
-- [ ] MCP-инструменты `list_links` / `list_claims` / `get_stats` — кандидат в PLAN-007.
+- [x] MCP-инструменты `list_links` / `list_claims` / `get_stats` — закрыто в [`PLAN-007`](../plans/plan_007_mcp_links_claims_stats.md): три read-only инструмента добавлены в `brain-mcp` (9 инструментов), 226 тестов.
 
 ## Следующая задача
 
