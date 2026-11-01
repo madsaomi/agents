@@ -47,9 +47,9 @@ class TestDetection(unittest.TestCase):
 
     def test_detects_known_token_types(self):
         cases = [
-            ("api.md", "ключ: sk-proj-REDACTED-DUMMY", "OpenAI"),
+            ("api.md", "ключ: sk-proj-" + "Abcdefghijklmnopqrst123456", "OpenAI"),
             ("api.md", "токен: ghp_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4o5P6q7R8", "GitHub"),
-            ("api.md", "slack: xoxb-REDACTED-DUMMY", "Slack"),
+            ("api.md", "slack: xoxb-" + "1234567890-abcdefghijklmnop", "Slack"),
             ("api.md", "aws: AKIA" + "ABCDEFGHIJKLMNOP", "AWS"),
             ("key.md", "-----BEGIN RSA PRIVATE KEY-----", "Private key"),
         ]
