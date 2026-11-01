@@ -84,6 +84,8 @@ import locks as task_locks
 import stats as memory_stats
 import links as memory_links
 import doctor as env_doctor
+import handoff as brain_handoff
+import archive_task as task_archive
 from tour import TOUR_SCREENS, render_screens  # noqa: F401 — TOUR_SCREENS: реэкспорт (PLAN-009)
 
 # -----------------------------------------------------------------------------
@@ -681,6 +683,12 @@ def main():
     doctor_parser = subparsers.add_parser("doctor", help="Диагностика окружения: Python, FTS5, git, индекс, буфер, [mcp]")
     doctor_parser.add_argument("--json", action="store_true", help="JSON-вывод для машинного чтения")
 
+    # handoff / archive (PLAN-010)
+    handoff_parser = subparsers.add_parser("handoff", help="Эстафета для следующего агента: статус, задача, план, баги, локи, история")
+    handoff_parser.add_argument("--copy", action="store_true", help="Скопировать отчёт в буфер обмена")
+    archive_parser = subparsers.add_parser("archive", help="Архивировать завершённую задачу и сбросить active_task")
+    archive_parser.add_argument("--force", action="store_true", help="Архивировать даже при незакрытых пунктах")
+
     # links (PLAN-005)
     links_parser = subparsers.add_parser("links", help="Вики-связи [[...]]: исходящие, обратные ссылки")
     links_parser.add_argument("query", nargs="?", default="", help="ID/имя записи (напр. BUG-001)")
@@ -889,6 +897,23 @@ def cmd_doctor(args):
     sys.exit(1 if report["summary"]["errors"] else 0)
 
 
+def cmd_handoff(args):
+    text = brain_handoff.format_handoff(brain_handoff.collect_handoff(root=PROJECT_ROOT))
+    print(text)
+    if args.copy:
+        if copy_to_clipboard(text):
+            print(f"\n{GREEN}🎉 Эстафета скопирована в буфер обмена — вставь её следующему агенту.{RESET}")
+        else:
+            print("\nБуфер обмена недоступен — скопируй текст выше вручную.")
+
+
+def cmd_archive(args):
+    ok, msg = task_archive.archive_active_task(root=PROJECT_ROOT, force=args.force)
+    print(("✅ " if ok else "❌ ") + msg)
+    if not ok:
+        sys.exit(1)
+
+
 def cmd_tour(args):
     render_screens(TOUR_SCREENS, interactive=not args.list and sys.stdin.isatty())
     sys.exit(0)
@@ -982,6 +1007,8 @@ HANDLERS = {
     "claims": cmd_claims,
     "stats": cmd_stats,
     "doctor": cmd_doctor,
+    "handoff": cmd_handoff,
+    "archive": cmd_archive,
     "tour": cmd_tour,
     "links": cmd_links,
     "presets": cmd_presets,

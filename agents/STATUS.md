@@ -5,7 +5,7 @@
 **Технологический стек:** Python 3.9+ (stdlib-only, опциональный extra `[mcp]`), SQLite FTS5, Markdown, Git, Claude Code / Cursor / Windsurf / Antigravity / Codex / OpenCode  
 **Последнее обновление:** 2026-11-01 (Западная Азия (зима))  
 **Ответственный агент:** AI Assistant
-**Текущая фаза:** 🟢 PLAN-003…009 закрыты (последний — надёжность ядра CLI), проект готов к использованию  
+**Текущая фаза:** 🟢 PLAN-003…010 закрыты (последний — жизненный цикл памяти), проект готов к использованию  
 
 ---
 
@@ -26,7 +26,8 @@
 | **Связи и теги (PLAN-005)** | 🟢 Готово | Вики-связи `[[...]]` + обратные ссылки (`brain links`), frontmatter-теги с авто-миграцией индекса, фильтры `search --tag/--since`, секции в `stats` |
 | **Диагностика окружения (PLAN-008)** | 🟢 Готово | `brain doctor [--json]`: Python/FTS5/git/свежесть индекса/буфер/extra `[mcp]`/запись; warn не валят exit code, хинты по каждой проблеме |
 | **Надёжность ядра CLI (PLAN-009)** | 🟢 Готово | Смок-тесты подкоманд `brain.py` (subprocess), `main()` → `cmd_*` + `HANDLERS`, тур → `tour.py`; BUG-002 (`index_memory` игнорировал root) исправлен; pre-commit хук установлен в самом шаблоне |
-| **Тесты и CI** | 🟢 Готово | 254 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
+| **Жизненный цикл памяти (PLAN-010)** | 🟢 Готово | `brain handoff [--copy]` — эстафета (7 секций, fail-soft); `brain archive [--force]` — архив задачи + сброс active_task; memory lint (секция 12 check) — дисциплина записей warn-ами |
+| **Тесты и CI** | 🟢 Готово | 272 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
 | **Документация** | 🟢 Готово | README, CODEBASE_MAP, walkthrough_003, AGENTS.md |
 
 > *Обозначения статусов: 🟢 Готово / Работает | 🟡 В разработке / Требует внимания | 🔴 Заблокировано / Ошибка | ⚪ Не начато*
@@ -34,7 +35,7 @@
 ---
 
 ## 🎯 Что делается прямо сейчас (Текущий фокус):
-- PLAN-009 «Надёжность ядра CLI» — реализован (см. 👉 **[`agents/tasks/active_task.md`](tasks/active_task.md)**), сдача/коммит
+- PLAN-010 «Жизненный цикл памяти» (handoff/archive/lint) — реализован (см. 👉 **[`agents/tasks/active_task.md`](tasks/active_task.md)**), сдача/коммит
 - Следующая задача — из [`backlog.md`](tasks/backlog.md): кандидаты TASK-010 (PyPI), TASK-011 (graph), TASK-012 (digest), TASK-013 (root у фабрик)
 
 ---

@@ -1,25 +1,25 @@
-# 📋 Активная задача: TASK-009 — Надёжность ядра CLI
+# 📋 Активная задача: TASK-014 — Жизненный цикл памяти: handoff, archive, lint
 
 **Статус:** ✅ COMPLETED (Завершена)  
 **Дата создания:** 2026-11-01  
 **Дата завершения:** 2026-11-01  
 **Исполнитель:** ZCode (GLM)  
 **Приоритет:** MEDIUM  
-**Связанный план:** [`PLAN-009`](../plans/plan_009_nadyozhnost_yadra_cli.md)  
+**Связанный план:** [`PLAN-010`](../plans/plan_010_zhiznennyy_tsikl_pamyati_handoff_archive_lint.md)  
 
 ---
 
 ## Чек-лист
 
-- [x] **Этап 1:** контракт совместимости зафиксирован — из brain.py снаружи импортируются `main` (редиректор), `PROJECT_ROOT`/`show_status`/фабрики (brain_mcp), `transform_opencode_md` (test_sync), `list_presets`/`PRESETS_SOURCE_DIR` (test_presets); TOUR_SCREENS — только внутри
-- [x] **Этап 2:** `agents/tools/tour.py` (TOUR_SCREENS + `render_screens`); `main()` в brain.py → тонкий диспетчер `HANDLERS` + 21 хендлер `cmd_*`, поведение не менялось (строки вывода 1-в-1, реэкспорт TOUR_SCREENS сохранён)
-- [x] **Этап 3:** `tests/test_cli.py` — 14 смоков (11 read-only на живом репо + 3 на tmp-скелете). Попутно **найден и исправлен BUG-002**: `index_memory` писал индекс в расположение модуля, игнорируя root (смок из tmp затёр индекс живого репо → восстановлен, `search.py` исправлен, запись в `bugs_and_fixes/`). Suite: **254 tests, 0 failures, 1 skip**
-- [x] **Этап 4:** backlog.md переписан под реальный бэклог (TASK-010…013); pre-commit хук установлен в сам шаблон (`install_hooks.py`); STATUS/CODEBASE_MAP актуализированы; `sync --check` чист; integrity 100%; коммит `refactor(plan-009)`; запись в `agents/history/`
+- [x] **Этап 1:** `agents/tools/memory_lint.py` (4 проверки, warn), `agents/tools/archive_task.py` (валидация → архив → сброс; номер из TASK-ID, перезапись запрещена), `agents/tools/handoff.py` (7 fail-soft секций, `_section()` для h2–h6) — все с `root`-параметром
+- [x] **Этап 2:** brain.py — subparsers `handoff [--copy]` / `archive [--force]` + `cmd_handoff`/`cmd_archive` в HANDLERS; check_integrity — секция 12 (lint, warn); тур 7/7 — строка про handoff/archive
+- [x] **Этап 3:** `tests/test_lifecycle.py` — 18 тестов (lint: чисто/нарушения/исключения example; archive: отказ/force/перезапись/fallback; handoff: сбор/fail-soft/секции; CLI-смоуки). Попутно вылечен ложный битый линк `../plans/<file>` в тексте плана (валидатор ссылок честно ругался). Suite: **272 tests, 0 failures, 1 skip**
+- [x] **Этап 4:** README (+2 команды), STATUS (подсистема, 272), CODEBASE_MAP (3 модуля в дереве и таблице), `sync --check` чист, integrity 100%, коммит `feat(plan-010)`, запись в history
 
-## Открытые пункты
+## Примечания
 
-- [ ] Живой смоук Codex `/hooks` — внешний блокер, перенесён в backlog.
-- [ ] **TASK-013** (бэклог, high): фабрики артефактов не принимают `root` — тот же класс дефекта, что BUG-002.
+- `brain handoff` на живом репо собрал честную эстафету: фаза, TASK-009 с открытыми пунктами (внешний смоук Codex + TASK-013), открытый BUG-001.
+- Логика переноса задач в архив теперь автоматизирована; по завершении сессии: `end` → `handoff` → `archive`.
 
 ## Следующая задача
 

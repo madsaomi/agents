@@ -24,6 +24,8 @@ python brain.py tour [--list]       # 🧭 Интерактивный гид д�
 python brain.py sync [--check]      # ⚙️ Сгенерировать конфиги AI-инструментов из agents/rules/CORE_RULES.md
 python brain.py search "jwt"        # 🔍 Полнотекстовый поиск по памяти (SQLite FTS5, --reindex, --tag, --since)
 python brain.py links BUG-001       # 🔗 Вики-связи [[...]]: исходящие, обратные ссылки, --unresolved
+python brain.py handoff [--copy]    # 🤝 Эстафета для следующего агента (статус, задача, план, баги, история)
+python brain.py archive [--force]   # 🗄️ Архивировать завершённую задачу и сбросить active_task
 python brain.py claim TASK-003      # 🔒 Забрать задачу (параллельным агентам — сюда не лезть)
 python brain.py release TASK-003    # 🔓 Освободить задачу
 python brain.py presets             # 🧩 Показать пресеты стека (django-drf, aiogram-bot, fastapi, nextjs)

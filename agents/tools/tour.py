@@ -50,6 +50,7 @@ TOUR_SCREENS = [
      "  Проверка:        python brain.py check [--fix] · python brain.py doctor (окружение)"),
     ("7/7 ✅ Готово!",
      "Начни с agents/STATUS.md и agents/tasks/active_task.md.\n"
+     "Эстафета: python brain.py handoff [--copy] · Архив задачи: python brain.py archive\n"
      "Полный гайд: AGENTS.md · README.md · agents/AGENT_GUIDE.md\n"
      "Команда снова: python brain.py tour"),
 ]

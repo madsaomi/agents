@@ -389,6 +389,22 @@ def run_integrity_check(fix: bool = False):
         else:
             log_check("Секреты в файлах (secret_scan)", True, "")
 
+    # Секция 12: линт памяти (PLAN-010) — дисциплина записей, warn-уровень
+    try:
+        import memory_lint
+        lint_findings = memory_lint.lint_memory(root=PROJECT_ROOT)
+    except Exception as e:
+        lint_findings = None
+        warnings_count += 1
+        log_check("Линт памяти", False, f"линтер недоступен: {e}", is_warning=True)
+    if lint_findings is not None:
+        if lint_findings:
+            warnings_count += len(lint_findings)
+            for f in lint_findings:
+                log_check(f"Линт памяти: {f['name']}", False, f["details"], is_warning=True)
+        else:
+            log_check("Линт памяти (дисциплина записей)", True, "")
+
     # Итоговый вывод
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")
     if errors_count == 0:
