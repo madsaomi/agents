@@ -1,0 +1,45 @@
+name: Second Brain Integrity Check
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  validate-second-brain:
+    name: Validate Second Brain (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11', '3.13']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compile Python Tools
+        run: |
+          python -m py_compile agents/tools/*.py agents/tools/hooks/*.py agents/mcp/*.py brain.py
+
+      - name: Run Unit Tests
+        run: |
+          python -m unittest discover -s tests -v
+
+      - name: Check Config Sync Drift
+        run: |
+          python brain.py sync --check
+
+      - name: Run Integrity Checker
+        run: |
+          python agents/tools/check_integrity.py
+
+      - name: Run Environment Doctor (PLAN-008)
+        run: |
+          python brain.py doctor --json

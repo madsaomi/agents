@@ -1,0 +1,432 @@
+#!/usr/bin/env python3
+"""
+Second Brain & Project Integrity Checker.
+Универсальный скрипт проверки целостности структуры 'agents/' и проектной документации.
+Не требует сторонних зависимостей (только стандартная библиотека Python).
+"""
+
+import sys
+import os
+import re
+from pathlib import Path
+
+# Обеспечиваем поддержку UTF-8 в консоли Windows
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+# Цвета для вывода в терминал
+GREEN = "\033[92m"
+RED = "\033[91m"
+YELLOW = "\033[93m"
+CYAN = "\033[96m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+AGENTS_DIR = SCRIPT_DIR.parent
+PROJECT_ROOT = AGENTS_DIR.parent
+
+def log_check(name: str, passed: bool, details: str = "", is_warning: bool = False,
+              file: str = None):
+    if passed:
+        status = f"{GREEN}[OK]{RESET}"
+    elif is_warning:
+        status = f"{YELLOW}[WARN]{RESET}"
+    else:
+        status = f"{RED}[FAIL]{RESET}"
+        
+    print(f"  {status} {name}")
+    if details and not passed:
+        color = YELLOW if is_warning else RED
+        print(f"       {color}--> {details}{RESET}")
+    # GitHub Actions: дублируем проблему аннотацией, чтобы она была видна в PR
+    if not passed and os.environ.get("GITHUB_ACTIONS") == "true":
+        msg = name + (f": {details}" if details else "")
+        level = "warning" if is_warning else "error"
+        loc = f" file={file}" if file else ""
+        # workflow-команды не переживают переводы строк
+        print(f"::{level}{loc}::{msg.replace(chr(10), ' ')}")
+
+def run_integrity_check(fix: bool = False, root=None):
+    # root — корень проекта (PLAN-013, TASK-015): проверяем проект пользователя,
+    # а не расположение модуля (fallback — прежнее поведение)
+    base_root = Path(root) if root else PROJECT_ROOT
+    base_agents = base_root / "agents"
+    print(f"\n{BOLD}{CYAN}===================================================={RESET}")
+    print(f"{BOLD}{CYAN}   🧠 Second Brain & Project Integrity Checker       {RESET}")
+    print(f"{BOLD}{CYAN}===================================================={RESET}\n")
+
+    errors_count = 0
+    warnings_count = 0
+
+    # 1. Проверка структуры каталогов agents/
+    print(f"{BOLD}1. Проверка структуры каталогов 'agents/':{RESET}")
+    required_subdirs = [
+        "architecture", "bugs_and_fixes", "decisions", "deployment",
+        "history", "plans", "product", "registry", "rules", "runbooks",
+        "tasks", "templates", "testing", "tools", "walkthroughs"
+    ]
+    for subdir in required_subdirs:
+        path = base_agents / subdir
+        exists = path.is_dir()
+        if not exists and fix:
+            try:
+                path.mkdir(parents=True, exist_ok=True)
+                exists = True
+                print(f"  {GREEN}[FIXED]{RESET} Каталог agents/{subdir} автоматически создан")
+            except Exception as e:
+                pass
+        if not exists:
+            errors_count += 1
+        log_check(f"Каталог agents/{subdir}", exists, "Директория отсутствует!")
+
+    # 2. Проверка ключевых манифестов документации
+    print(f"\n{BOLD}2. Проверка ключевых манифестов и регламентов:{RESET}")
+    required_manifests = [
+        base_agents / "AGENT_GUIDE.md",
+        base_agents / "STATUS.md",
+        base_agents / "GLOSSARY.md",
+        base_agents / "product" / "PRD.md",
+        base_agents / "rules" / "AGENT_RULES.md",
+        base_agents / "rules" / "ANTI_PATTERNS.md",
+        base_agents / "rules" / "CODING_STANDARDS.md",
+        base_agents / "rules" / "ONBOARDING_PROTOCOL.md",
+    ]
+    for mf in required_manifests:
+        exists = mf.is_file() and mf.stat().st_size > 50
+        if not exists:
+            errors_count += 1
+        rel_path = mf.relative_to(base_root) if base_root in mf.parents else mf.name
+        log_check(f"Манифест {rel_path}", exists, "Файл отсутствует или пуст")
+
+    # Проверка корневого AGENTS.md
+    root_agents_md = base_root / "AGENTS.md"
+    root_exists = root_agents_md.is_file()
+    if not root_exists:
+        warnings_count += 1
+        log_check("Корневой AGENTS.md в корне проекта", False, "Рекомендуется создать AGENTS.md в корне для IDE/AI",
+                  is_warning=True, file="AGENTS.md")
+    else:
+        log_check("Корневой AGENTS.md в корне проекта", True)
+
+    # 3. Проверка шаблонов (templates/)
+    print(f"\n{BOLD}3. Проверка бланков шаблонов (agents/templates/):{RESET}")
+    required_templates = [
+        "template_plan.md",
+        "template_walkthrough.md",
+        "template_pull_request.md",
+        "template_session_log.md",
+        "template_bug_report.md",
+        "template_task.md",
+        "template_adr.md",
+        "template_component_spec.md"
+    ]
+    for tpl in required_templates:
+        p = base_agents / "templates" / tpl
+        exists = p.is_file() and p.stat().st_size > 50
+        if not exists:
+            errors_count += 1
+        log_check(f"Шаблон {tpl}", exists, "Шаблон отсутствует!")
+
+    # 4. Проверка интеграций с AI-ассистентами
+    print(f"\n{BOLD}4. Проверка конфигураций AI-ассистентов (IDE / CLI):{RESET}")
+    ai_configs = [
+        (".cursorrules (Cursor)", base_root / ".cursorrules"),
+        (".cursor/rules/ (Cursor MDC)", base_root / ".cursor" / "rules" / "second-brain.mdc"),
+        ("CLAUDE.md (Claude Code)", base_root / "CLAUDE.md"),
+        (".windsurfrules (Windsurf)", base_root / ".windsurfrules"),
+        ("copilot-instructions.md (Copilot)", base_root / ".github" / "copilot-instructions.md"),
+    ]
+    for name, p in ai_configs:
+        exists = p.is_file() and p.stat().st_size > 20
+        if not exists:
+            warnings_count += 1
+            log_check(f"Конфиг {name}", False, f"Файл {p.name} не найден (рекомендуется для полноты поддержки)",
+                      is_warning=True, file=p.relative_to(base_root).as_posix())
+        else:
+            log_check(f"Конфиг {name}", True)
+
+    # 5. Проверка управления задачами (tasks/)
+    print(f"\n{BOLD}5. Проверка подсистемы задач (agents/tasks/):{RESET}")
+    active_task = base_agents / "tasks" / "active_task.md"
+    backlog = base_agents / "tasks" / "backlog.md"
+    
+    has_active = active_task.is_file() and active_task.stat().st_size > 50
+    if not has_active:
+        errors_count += 1
+    log_check("Активная задача (active_task.md)", has_active, "Файл active_task.md отсутствует!")
+
+    has_backlog = backlog.is_file() and backlog.stat().st_size > 50
+    if not has_backlog:
+        errors_count += 1
+    log_check("Бэклог задач (backlog.md)", has_backlog, "Файл backlog.md отсутствует!")
+
+    # 6. Проверка непрерывной истории (history/)
+    print(f"\n{BOLD}6. Проверка журнала истории (agents/history/):{RESET}")
+    history_files = [f for f in (base_agents / "history").glob("*.md") if f.name != "README.md"]
+    has_history = len(history_files) > 0
+    if not has_history:
+        warnings_count += 1
+        log_check("Наличие записей сессий в history/", False, "В папке history/ нет ни одной записи сессии", is_warning=True)
+    else:
+        log_check(f"Записей сессий в history/: {len(history_files)}", True)
+
+    # 7. Проверка на незаполненные плейсхолдеры
+    print(f"\n{BOLD}7. Проверка инициализации проекта (наличие плейсхолдеров):{RESET}")
+    placeholder_files = [
+        base_agents / "STATUS.md",
+        base_agents / "architecture" / "CODEBASE_MAP.md",
+        base_agents / "GLOSSARY.md",
+        base_agents / "product" / "PRD.md",
+        base_agents / "tasks" / "backlog.md",
+    ]
+    all_placeholders_clean = True
+    for pf in placeholder_files:
+        if pf.is_file():
+            content = pf.read_text(encoding="utf-8", errors="replace")
+            placeholders_found = re.findall(r"\{\{([A-Z_]+)\}\}", content)
+            if placeholders_found:
+                all_placeholders_clean = False
+                warnings_count += 1
+                rel_path = pf.relative_to(base_root) if base_root in pf.parents else pf.name
+                log_check(
+                    f"Плейсхолдеры в {rel_path}",
+                    False,
+                    f"Незаполненные переменные: {set(placeholders_found)}. Запустите: python agents/tools/brain.py init",
+                    is_warning=True
+                )
+    if all_placeholders_clean:
+        log_check("Персонализация проекта (все плейсхолдеры заполнены)", True)
+
+    # 8. Проверка локальных ссылок в Markdown
+    print(f"\n{BOLD}8. Проверка целостности ссылок в Markdown документации:{RESET}")
+    broken_links = []
+    deprecated_links = []
+    link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+    md_files = list(base_agents.rglob("*.md"))
+    root_agents = base_root / "AGENTS.md"
+    if root_agents.is_file():
+        md_files.append(root_agents)
+
+    for mf in md_files:
+        try:
+            content = mf.read_text(encoding="utf-8", errors="replace")
+            content_no_code = re.sub(r"```[\s\S]*?```", "", content)
+            for text, raw_url in link_pattern.findall(content_no_code):
+                url = raw_url.strip()
+                if url.startswith(("http://", "https://", "mailto:", "#")):
+                    continue
+                target_part = url.split("#")[0]
+                if not target_part:
+                    continue
+                if target_part.startswith("file:///"):
+                    # Устаревший формат: ссылки должны быть относительными от документа
+                    deprecated_links.append((mf.relative_to(base_root) if base_root in mf.parents else mf.name, url))
+                    clean = target_part.replace("file:///", "").lstrip("/")
+                    target_path = base_root / clean
+                elif target_part.startswith("/"):
+                    target_path = base_root / target_part.lstrip("/")
+                else:
+                    target_path = (mf.parent / target_part).resolve()
+
+                if not (target_path.exists() or target_path.with_suffix(".md").exists()):
+                    broken_links.append((mf.relative_to(base_root) if base_root in mf.parents else mf.name, url))
+        except Exception:
+            pass
+
+    if broken_links:
+        warnings_count += 1
+        log_check(
+            "Валидация Markdown ссылок",
+            False,
+            f"Найдено {len(broken_links)} неразрешенных ссылок (например: {broken_links[0][1]} в {broken_links[0][0]})",
+            is_warning=True
+        )
+    else:
+        log_check("Валидация Markdown ссылок (битых ссылок не обнаружено)", True)
+
+    if deprecated_links:
+        warnings_count += 1
+        log_check(
+            "Формат ссылок (file:/// → относительные)",
+            False,
+            f"{len(deprecated_links)} ссылок в устаревшем формате file:/// (например: {deprecated_links[0][1]} в {deprecated_links[0][0]})",
+            is_warning=True
+        )
+    else:
+        log_check("Формат ссылок (относительные пути, без file:///)", True)
+
+    # 9. Проверка исполняемых правил: sync-канон, конфиги и хуки Claude Code
+    print(f"\n{BOLD}9. Проверка исполняемых правил (sync + хуки Claude Code):{RESET}")
+
+    core_rules = base_agents / "rules" / "CORE_RULES.md"
+    ok = core_rules.is_file() and core_rules.stat().st_size > 100
+    if not ok:
+        errors_count += 1
+    log_check("Канон правил agents/rules/CORE_RULES.md", ok, "Файл отсутствует — нет источника для sync!")
+
+    settings_path = base_root / ".claude" / "settings.json"
+    if settings_path.is_file():
+        try:
+            import json as _json
+            settings = _json.loads(settings_path.read_text(encoding="utf-8"))
+            events = set(settings.get("hooks", {}).keys())
+            required_events = {"SessionStart", "PreToolUse", "PostToolUse", "Stop"}
+            missing_events = required_events - events
+            ok = not missing_events
+            if not ok:
+                errors_count += 1
+            log_check(
+                "Хуки .claude/settings.json (события)",
+                ok,
+                f"Отсутствуют события: {sorted(missing_events)}",
+            )
+        except Exception as e:
+            errors_count += 1
+            log_check("Хуки .claude/settings.json (JSON валиден)", False, str(e))
+    else:
+        warnings_count += 1
+        log_check("Хуки .claude/settings.json", False, "Файл хуков не найден (исполняемые правила не активны)",
+                  is_warning=True, file=".claude/settings.json")
+
+    hooks_dir = base_agents / "tools" / "hooks"
+    expected_hooks = ["pre_tool_gate.py", "inject_context.py", "post_edit_lint.py", "session_log.py"]
+    missing_hooks = [h for h in expected_hooks if not (hooks_dir / h).is_file()]
+    if missing_hooks:
+        errors_count += 1
+    log_check("Скрипты хуков agents/tools/hooks/", not missing_hooks, f"Нет: {missing_hooks}")
+
+    # MCP-сервер brain-mcp (опциональный extra [mcp])
+    mcp_server_path = base_agents / "mcp" / "brain_mcp.py"
+    if not mcp_server_path.is_file():
+        errors_count += 1
+    log_check("MCP-сервер agents/mcp/brain_mcp.py", mcp_server_path.is_file(), "Файл отсутствует")
+
+    mcpjson = base_root / ".mcp.json"
+    if mcpjson.is_file():
+        try:
+            import json as _json
+            cfg = _json.loads(mcpjson.read_text(encoding="utf-8"))
+            servers = cfg.get("mcpServers", {})
+            ok = "brain" in servers
+            if not ok:
+                errors_count += 1
+            log_check(".mcp.json (валидный JSON, сервер brain)", ok, "Сервер 'brain' не прописан")
+            # секреты не хранятся в явном виде
+            inline_secrets = [
+                f"{name}.{key}" for name, srv in servers.items()
+                for key, val in (srv.get("env") or {}).items()
+                if val and not str(val).startswith("${")
+            ]
+            if inline_secrets:
+                errors_count += 1
+            log_check(".mcp.json (секреты только через ${ENV})", not inline_secrets, f"Явные значения: {inline_secrets}")
+        except Exception as e:
+            errors_count += 1
+            log_check(".mcp.json (JSON валиден)", False, str(e))
+    else:
+        warnings_count += 1
+        log_check(".mcp.json", False, "Конфиг MCP-пресетов не найден", is_warning=True, file=".mcp.json")
+
+    # Секция 10: актуальность CODEBASE_MAP.md (детектор устаревания, fail-soft)
+    # Если код менялся после последнего обновления карты кодовой базы — предупреждаем.
+    codebase_map = base_agents / "architecture" / "CODEBASE_MAP.md"
+    if codebase_map.is_file():
+        try:
+            import subprocess
+
+            def _last_change(paths):
+                """Unix-время последнего git-коммита, затронувшего paths (None — нет git/коммитов)."""
+                out = subprocess.run(
+                    ["git", "log", "-1", "--format=%ct", "--"] + paths,
+                    cwd=str(base_root), capture_output=True, text=True, timeout=10,
+                )
+                if out.returncode != 0 or not out.stdout.strip():
+                    return None
+                return int(out.stdout.strip().splitlines()[-1])
+
+            code_paths = ["agents/tools/", "agents/mcp/", "agents/tools/hooks/", "brain.py"]
+            code_ts = _last_change(code_paths)
+            map_ts = _last_change(["agents/architecture/CODEBASE_MAP.md"])
+            if code_ts is not None and map_ts is not None and code_ts > map_ts:
+                warnings_count += 1
+                log_check(
+                    "CODEBASE_MAP.md актуален",
+                    False,
+                    "Код менялся позже последнего обновления карты кодовой базы — обнови её (см. agents/architecture/CODEBASE_MAP.md)",
+                    is_warning=True,
+                    file="agents/architecture/CODEBASE_MAP.md",
+                )
+            elif code_ts is not None:
+                log_check("CODEBASE_MAP.md актуален", True, "Карта обновлялась не старее последних изменений кода")
+        except Exception:
+            log_check("CODEBASE_MAP.md актуален", True, "git недоступен — проверка пропущена")
+    else:
+        warnings_count += 1
+        log_check("CODEBASE_MAP.md", False, "Карта кодовой базы отсутствует", is_warning=True)
+
+    # Секция 11: секреты в файлах (PLAN-004, Этап 1) — сканирует tracked+untracked
+    # файлы; ловится и в CI, и в git pre-commit (он запускает этот скрипт)
+    try:
+        import secret_scan
+        findings = secret_scan.scan_project(root=base_root)
+    except Exception as e:
+        findings = None
+        warnings_count += 1
+        log_check("Секреты в файлах", False, f"сканер недоступен: {e}", is_warning=True)
+    if findings is not None:
+        if findings:
+            errors_count += 1
+            preview = "; ".join(f"{f['file']}:{f['line']} — {f['kind']}" for f in findings[:5])
+            if len(findings) > 5:
+                preview += f" …и ещё {len(findings) - 5}"
+            log_check(
+                "Секреты в файлах (secret_scan)",
+                False,
+                f"найдено {len(findings)}: {preview}. Убери секрет или отметь файл маркером `secretscan: off`",
+                file=findings[0]["file"],
+            )
+        else:
+            log_check("Секреты в файлах (secret_scan)", True, "")
+
+    # Секция 12: линт памяти (PLAN-010) — дисциплина записей, warn-уровень
+    try:
+        import memory_lint
+        lint_findings = memory_lint.lint_memory(root=base_root)
+    except Exception as e:
+        lint_findings = None
+        warnings_count += 1
+        log_check("Линт памяти", False, f"линтер недоступен: {e}", is_warning=True)
+    if lint_findings is not None:
+        if lint_findings:
+            warnings_count += len(lint_findings)
+            for f in lint_findings:
+                log_check(f"Линт памяти: {f['name']}", False, f["details"], is_warning=True)
+        else:
+            log_check("Линт памяти (дисциплина записей)", True, "")
+
+    # Итоговый вывод
+    print(f"\n{BOLD}{CYAN}===================================================={RESET}")
+    if errors_count == 0:
+        if warnings_count > 0:
+            print(f"{BOLD}{YELLOW}  ⚠️ ВТОРОЙ МОЗГ РАБОТОСПОСОБЕН! (Ошибок: 0, Предупреждений: {warnings_count}) {RESET}")
+        else:
+            print(f"{BOLD}{GREEN}  🎉 ИТОГ: ВСЕ СИСТЕМЫ И ВТОРОЙ МОЗГ В 100% ПОРЯДКЕ! {RESET}")
+        print(f"{BOLD}{CYAN}===================================================={RESET}\n")
+        return 0
+    else:
+        print(f"{BOLD}{RED}  ❌ ИТОГ: НАЙДЕНО КРИТИЧЕСКИХ ОШИБОК: {errors_count} (Предупреждений: {warnings_count}) {RESET}")
+        print(f"{BOLD}{CYAN}===================================================={RESET}\n")
+        return 1
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Second Brain Integrity Checker")
+    parser.add_argument("--fix", action="store_true", help="Автоматически восстанавливать отсутствующие каталоги")
+    args = parser.parse_args()
+    code = run_integrity_check(fix=args.fix)
+    sys.exit(code)

@@ -1,0 +1,15 @@
+{
+  "name": "aiogram-bot",
+  "description": "aiogram 3 + PostgreSQL + Redis + Celery (Telegram-бот)",
+  "files": [
+    { "src": "files/CODING_STANDARDS.md", "dst": "agents/rules/CODING_STANDARDS.md" },
+    { "src": "files/CODEBASE_MAP.md", "dst": "agents/architecture/CODEBASE_MAP.md" },
+    { "src": "files/QA_CHECKLIST.md", "dst": "agents/testing/QA_CHECKLIST.md" },
+    { "src": "files/env.example", "dst": ".env.example" },
+    { "src": "files/docker-compose.yml", "dst": "docker-compose.yml" },
+    { "src": "files/ci.yml", "dst": ".github/workflows/ci.yml" },
+    { "src": "agents/aiogram-handler-writer.md", "dst": ".claude/agents/aiogram-handler-writer.md" },
+    { "src": "skills/telegram-bot-handler/SKILL.md", "dst": ".claude/skills/telegram-bot-handler/SKILL.md" },
+    { "src": "skills/celery-task/SKILL.md", "dst": ".claude/skills/celery-task/SKILL.md" }
+  ]
+}

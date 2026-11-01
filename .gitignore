@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments & Virtual Envs
+.env
+.env.local
+.env.*.local
+venv/
+env/
+ENV/
+.venv/
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.npm/
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & Temporary Files
+*.log
+context_dump.md
+agents/tools/context_dump.md
+scratch/
+.system_generated/
+
+# AI Agents & Tools
+.aider*
+.aider.conf.yml
+.aider.tags.cache.v3/
+.gemini/
+.continue/
+.zed/
+.claude/.session_state.json
+*.bak
+tmp/
+.brain_index.db
+brain_index.db*
+agents/tasks/.locks/
+
+second_brain_template.egg-info/
+build/

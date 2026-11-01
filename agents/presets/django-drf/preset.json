@@ -1,0 +1,17 @@
+{
+  "name": "django-drf",
+  "description": "Django + DRF + Celery + Redis + PostgreSQL + JWT",
+  "files": [
+    { "src": "files/CODING_STANDARDS.md", "dst": "agents/rules/CODING_STANDARDS.md" },
+    { "src": "files/CODEBASE_MAP.md", "dst": "agents/architecture/CODEBASE_MAP.md" },
+    { "src": "files/QA_CHECKLIST.md", "dst": "agents/testing/QA_CHECKLIST.md" },
+    { "src": "files/env.example", "dst": ".env.example" },
+    { "src": "files/docker-compose.yml", "dst": "docker-compose.yml" },
+    { "src": "files/ci.yml", "dst": ".github/workflows/ci.yml" },
+    { "src": "agents/django-migration-reviewer.md", "dst": ".claude/agents/django-migration-reviewer.md" },
+    { "src": "agents/drf-api-designer.md", "dst": ".claude/agents/drf-api-designer.md" },
+    { "src": "skills/new-drf-endpoint/SKILL.md", "dst": ".claude/skills/new-drf-endpoint/SKILL.md" },
+    { "src": "skills/celery-task/SKILL.md", "dst": ".claude/skills/celery-task/SKILL.md" },
+    { "src": "skills/db-migration/SKILL.md", "dst": ".claude/skills/db-migration/SKILL.md" }
+  ]
+}
