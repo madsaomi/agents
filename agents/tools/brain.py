@@ -86,6 +86,7 @@ import links as memory_links
 import doctor as env_doctor
 import handoff as brain_handoff
 import archive_task as task_archive
+import graph as memory_graph
 from tour import TOUR_SCREENS, render_screens  # noqa: F401 — TOUR_SCREENS: реэкспорт (PLAN-009)
 
 # -----------------------------------------------------------------------------
@@ -694,6 +695,12 @@ def main():
     links_parser.add_argument("query", nargs="?", default="", help="ID/имя записи (напр. BUG-001)")
     links_parser.add_argument("--unresolved", action="store_true", help="Все битые [[связи]] памяти")
 
+    # graph (PLAN-012)
+    graph_parser = subparsers.add_parser("graph", help="Mermaid-граф вики-связей памяти (узлы-записи, битые — пунктиром)")
+    graph_parser.add_argument("--json", action="store_true", help="Вывести собранный граф в JSON")
+    graph_parser.add_argument("--max", type=int, default=memory_graph.MAX_NODES_DEFAULT,
+                              help=f"Лимит узлов по степени связности (default {memory_graph.MAX_NODES_DEFAULT})")
+
     # presets / preset
     subparsers.add_parser("presets", help="Показать доступные пресеты стека")
     preset_parser = subparsers.add_parser("preset", help="Применить пресет стека (django-drf, aiogram-bot, fastapi, nextjs)")
@@ -926,6 +933,15 @@ def cmd_links(args):
     sys.exit(code)
 
 
+def cmd_graph(args):
+    graph = memory_graph.collect_graph(root=PROJECT_ROOT)
+    if args.json:
+        print(json.dumps(graph, ensure_ascii=False, indent=2))
+    else:
+        print(memory_graph.render_mermaid(graph, max_nodes=args.max))
+        print(memory_graph.format_summary(graph, max_nodes=args.max))
+
+
 def cmd_presets(args):
     presets = list_presets()
     if not presets:
@@ -1011,6 +1027,7 @@ HANDLERS = {
     "archive": cmd_archive,
     "tour": cmd_tour,
     "links": cmd_links,
+    "graph": cmd_graph,
     "presets": cmd_presets,
     "preset": cmd_preset,
     "upgrade": cmd_upgrade,

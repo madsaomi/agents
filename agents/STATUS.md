@@ -5,7 +5,7 @@
 **Технологический стек:** Python 3.9+ (stdlib-only, опциональный extra `[mcp]`), SQLite FTS5, Markdown, Git, Claude Code / Cursor / Windsurf / Antigravity / Codex / OpenCode  
 **Последнее обновление:** 2026-11-01 (Западная Азия (зима))  
 **Ответственный агент:** AI Assistant
-**Текущая фаза:** 🟢 PLAN-003…011 закрыты (последний — root-aware фабрики), проект готов к релизу  
+**Текущая фаза:** 🟢 PLAN-003…012 закрыты (последний — `brain graph`), проект готов к релизу  
 
 ---
 
@@ -28,7 +28,8 @@
 | **Надёжность ядра CLI (PLAN-009)** | 🟢 Готово | Смок-тесты подкоманд `brain.py` (subprocess), `main()` → `cmd_*` + `HANDLERS`, тур → `tour.py`; BUG-002 (`index_memory` игнорировал root) исправлен; pre-commit хук установлен в самом шаблоне |
 | **Жизненный цикл памяти (PLAN-010)** | 🟢 Готово | `brain handoff [--copy]` — эстафета (7 секций, fail-soft); `brain archive [--force]` — архив задачи + сброс active_task; memory lint (секция 12 check) — дисциплина записей warn-ами |
 | **Root-aware фабрики (PLAN-011)** | 🟢 Готово | Все 7 фабрик артефактов (`plan/bug/adr/task/walkthrough/init/end`) принимают `root`: цели — от root проекта, шаблоны — ресурсы модуля; CLI-регресс из tmp-скелета (класс BUG-002 закрыт) |
-| **Тесты и CI** | 🟢 Готово | 281 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
+| **Mermaid-граф связей (PLAN-012)** | 🟢 Готово | `brain graph [--json] [--max N]`: узлы-записи с эмодзи разделов, рёбра `-->` по `[[связям]]`, битые — пунктиром на фантомы; лимит по степени связности |
+| **Тесты и CI** | 🟢 Готово | 295 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
 | **Документация** | 🟢 Готово | README, CODEBASE_MAP, walkthrough_003, AGENTS.md |
 
 > *Обозначения статусов: 🟢 Готово / Работает | 🟡 В разработке / Требует внимания | 🔴 Заблокировано / Ошибка | ⚪ Не начато*
@@ -36,8 +37,8 @@
 ---
 
 ## 🎯 Что делается прямо сейчас (Текущий фокус):
-- PLAN-011 «Root-aware фабрики артефактов» (TASK-013) — реализован (см. 👉 **[`agents/tasks/active_task.md`](tasks/active_task.md)**), сдача/коммит
-- Следующая задача — из [`backlog.md`](tasks/backlog.md): TASK-010 (PyPI, разблокировано), TASK-011 (graph), TASK-012 (digest), TASK-015 (root-остатки: check/dump)
+- PLAN-012 «`brain graph`» (TASK-011) — реализован (см. 👉 **[`agents/tasks/active_task.md`](tasks/active_task.md)**), сдача/коммит
+- Следующая задача — из [`backlog.md`](tasks/backlog.md): TASK-010 (PyPI, разблокировано), TASK-012 (digest), TASK-015 (root-остатки: check/dump)
 
 ---
 
