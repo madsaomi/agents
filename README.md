@@ -32,7 +32,8 @@ python brain.py release TASK-003    # 🔓 Освободить задачу
 python brain.py presets             # 🧩 Показать пресеты стека (django-drf, aiogram-bot, fastapi, nextjs)
 python brain.py preset <имя>        # 🧩 Применить пресет стека к проекту
 python brain.py upgrade             # ⬆️ Обновить шаблоны, не затирая свои правки и историю
-python brain.py dump [--budget N]   # 📦 Контекст в буфер для веб-чатов (N — лимит токенов)
+python brain.py dump [--budget N]   # 📦 Полный контекст в буфер для веб-чатов (N — лимит токенов)
+python brain.py digest [--tokens N] # 🧠 Компактный дайджест проекта для веб-чатов (--copy — в буфер)
 python brain.py end                 # 🏁 Завершить сессию и сохранить историю
 ```
 

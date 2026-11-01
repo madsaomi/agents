@@ -39,7 +39,8 @@ TOUR_SCREENS = [
      "  python brain.py search \"jwt timeout\"   — FTS5-поиск по всей памяти\n"
      "  python brain.py stats [--json]          — дашборд здоровья памяти\n"
      "  python brain.py graph [--max N]         — mermaid-граф вики-связей\n"
-     "  python brain.py dump --budget 4000      — контекст в буфер под лимит токенов"),
+     "  python brain.py dump --budget 4000      — контекст в буфер под лимит токенов\n"
+     "  python brain.py digest [--tokens N]     — компактный дайджест для веб-чатов"),
     ("5/7 🤝 Параллельная работа агентов",
      "  python brain.py claim TASK-XXX [--worktree]  — забрать задачу (лок)\n"
      "  python brain.py claims                       — кто что держит\n"

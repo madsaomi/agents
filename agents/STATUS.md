@@ -5,7 +5,7 @@
 **Технологический стек:** Python 3.9+ (stdlib-only, опциональный extra `[mcp]`), SQLite FTS5, Markdown, Git, Claude Code / Cursor / Windsurf / Antigravity / Codex / OpenCode  
 **Последнее обновление:** 2026-11-01 (Западная Азия (зима))  
 **Ответственный агент:** AI Assistant
-**Текущая фаза:** 🟢 PLAN-003…012 закрыты (последний — `brain graph`), проект готов к релизу  
+**Текущая фаза:** 🟢 PLAN-003…013 закрыты (последний — финальный код перед релизом), готово к PyPI v0.5.0  
 
 ---
 
@@ -29,7 +29,8 @@
 | **Жизненный цикл памяти (PLAN-010)** | 🟢 Готово | `brain handoff [--copy]` — эстафета (7 секций, fail-soft); `brain archive [--force]` — архив задачи + сброс active_task; memory lint (секция 12 check) — дисциплина записей warn-ами |
 | **Root-aware фабрики (PLAN-011)** | 🟢 Готово | Все 7 фабрик артефактов (`plan/bug/adr/task/walkthrough/init/end`) принимают `root`: цели — от root проекта, шаблоны — ресурсы модуля; CLI-регресс из tmp-скелета (класс BUG-002 закрыт) |
 | **Mermaid-граф связей (PLAN-012)** | 🟢 Готово | `brain graph [--json] [--max N]`: узлы-записи с эмодзи разделов, рёбра `-->` по `[[связям]]`, битые — пунктиром на фантомы; лимит по степени связности |
-| **Тесты и CI** | 🟢 Готово | 295 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
+| **Финальный код (PLAN-013)** | 🟢 Готово | `check [--fix]` и `dump` уважают root (класс BUG-002 закрыт полностью); `brain digest [--tokens N] [--copy]` — компактная сводка поверх handoff/stats |
+| **Тесты и CI** | 🟢 Готово | 305 unittest (1 skip — SDK), матрица Python 3.9/3.11/3.13 |
 | **Документация** | 🟢 Готово | README, CODEBASE_MAP, walkthrough_003, AGENTS.md |
 
 > *Обозначения статусов: 🟢 Готово / Работает | 🟡 В разработке / Требует внимания | 🔴 Заблокировано / Ошибка | ⚪ Не начато*
@@ -37,8 +38,7 @@
 ---
 
 ## 🎯 Что делается прямо сейчас (Текущий фокус):
-- PLAN-012 «`brain graph`» (TASK-011) — реализован (см. 👉 **[`agents/tasks/active_task.md`](tasks/active_task.md)**), сдача/коммит
-- Следующая задача — из [`backlog.md`](tasks/backlog.md): TASK-010 (PyPI, разблокировано), TASK-012 (digest), TASK-015 (root-остатки: check/dump)
+- **PyPI v0.5.0 (TASK-010)** — подготовка релиза: см. 👉 **[`agents/plans/plan_014_pypi_v050_podgotovka_reliza.md`](plans/plan_014_pypi_v050_podgotovka_reliza.md)**; остаётся шаг публикации с токеном заказчика
 
 ---
 

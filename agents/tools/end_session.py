@@ -127,11 +127,11 @@ def end_session(agent: str, task_id: str, done_items: list, next_steps: str, dec
         status_file.write_text(status_text, encoding="utf-8")
         print(f"✓ Обновлен дашборд agents/STATUS.md (дата: {time_display})")
 
-    # Запускаем валидацию
+    # Запускаем валидацию (root передаётся дальше — PLAN-013, TASK-015)
     print("\nЗапуск проверки целостности...")
     sys.path.insert(0, str(SCRIPT_DIR))
     from check_integrity import run_integrity_check
-    run_integrity_check()
+    run_integrity_check(root=root)
 
 def main():
     parser = argparse.ArgumentParser(description="Second Brain Session Wrap-Up Tool")

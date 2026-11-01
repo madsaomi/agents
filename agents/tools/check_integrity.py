@@ -51,7 +51,11 @@ def log_check(name: str, passed: bool, details: str = "", is_warning: bool = Fal
         # workflow-команды не переживают переводы строк
         print(f"::{level}{loc}::{msg.replace(chr(10), ' ')}")
 
-def run_integrity_check(fix: bool = False):
+def run_integrity_check(fix: bool = False, root=None):
+    # root — корень проекта (PLAN-013, TASK-015): проверяем проект пользователя,
+    # а не расположение модуля (fallback — прежнее поведение)
+    base_root = Path(root) if root else PROJECT_ROOT
+    base_agents = base_root / "agents"
     print(f"\n{BOLD}{CYAN}===================================================={RESET}")
     print(f"{BOLD}{CYAN}   🧠 Second Brain & Project Integrity Checker       {RESET}")
     print(f"{BOLD}{CYAN}===================================================={RESET}\n")
@@ -67,7 +71,7 @@ def run_integrity_check(fix: bool = False):
         "tasks", "templates", "testing", "tools", "walkthroughs"
     ]
     for subdir in required_subdirs:
-        path = AGENTS_DIR / subdir
+        path = base_agents / subdir
         exists = path.is_dir()
         if not exists and fix:
             try:
@@ -83,24 +87,24 @@ def run_integrity_check(fix: bool = False):
     # 2. Проверка ключевых манифестов документации
     print(f"\n{BOLD}2. Проверка ключевых манифестов и регламентов:{RESET}")
     required_manifests = [
-        AGENTS_DIR / "AGENT_GUIDE.md",
-        AGENTS_DIR / "STATUS.md",
-        AGENTS_DIR / "GLOSSARY.md",
-        AGENTS_DIR / "product" / "PRD.md",
-        AGENTS_DIR / "rules" / "AGENT_RULES.md",
-        AGENTS_DIR / "rules" / "ANTI_PATTERNS.md",
-        AGENTS_DIR / "rules" / "CODING_STANDARDS.md",
-        AGENTS_DIR / "rules" / "ONBOARDING_PROTOCOL.md",
+        base_agents / "AGENT_GUIDE.md",
+        base_agents / "STATUS.md",
+        base_agents / "GLOSSARY.md",
+        base_agents / "product" / "PRD.md",
+        base_agents / "rules" / "AGENT_RULES.md",
+        base_agents / "rules" / "ANTI_PATTERNS.md",
+        base_agents / "rules" / "CODING_STANDARDS.md",
+        base_agents / "rules" / "ONBOARDING_PROTOCOL.md",
     ]
     for mf in required_manifests:
         exists = mf.is_file() and mf.stat().st_size > 50
         if not exists:
             errors_count += 1
-        rel_path = mf.relative_to(PROJECT_ROOT) if PROJECT_ROOT in mf.parents else mf.name
+        rel_path = mf.relative_to(base_root) if base_root in mf.parents else mf.name
         log_check(f"Манифест {rel_path}", exists, "Файл отсутствует или пуст")
 
     # Проверка корневого AGENTS.md
-    root_agents_md = PROJECT_ROOT / "AGENTS.md"
+    root_agents_md = base_root / "AGENTS.md"
     root_exists = root_agents_md.is_file()
     if not root_exists:
         warnings_count += 1
@@ -122,7 +126,7 @@ def run_integrity_check(fix: bool = False):
         "template_component_spec.md"
     ]
     for tpl in required_templates:
-        p = AGENTS_DIR / "templates" / tpl
+        p = base_agents / "templates" / tpl
         exists = p.is_file() and p.stat().st_size > 50
         if not exists:
             errors_count += 1
@@ -131,25 +135,25 @@ def run_integrity_check(fix: bool = False):
     # 4. Проверка интеграций с AI-ассистентами
     print(f"\n{BOLD}4. Проверка конфигураций AI-ассистентов (IDE / CLI):{RESET}")
     ai_configs = [
-        (".cursorrules (Cursor)", PROJECT_ROOT / ".cursorrules"),
-        (".cursor/rules/ (Cursor MDC)", PROJECT_ROOT / ".cursor" / "rules" / "second-brain.mdc"),
-        ("CLAUDE.md (Claude Code)", PROJECT_ROOT / "CLAUDE.md"),
-        (".windsurfrules (Windsurf)", PROJECT_ROOT / ".windsurfrules"),
-        ("copilot-instructions.md (Copilot)", PROJECT_ROOT / ".github" / "copilot-instructions.md"),
+        (".cursorrules (Cursor)", base_root / ".cursorrules"),
+        (".cursor/rules/ (Cursor MDC)", base_root / ".cursor" / "rules" / "second-brain.mdc"),
+        ("CLAUDE.md (Claude Code)", base_root / "CLAUDE.md"),
+        (".windsurfrules (Windsurf)", base_root / ".windsurfrules"),
+        ("copilot-instructions.md (Copilot)", base_root / ".github" / "copilot-instructions.md"),
     ]
     for name, p in ai_configs:
         exists = p.is_file() and p.stat().st_size > 20
         if not exists:
             warnings_count += 1
             log_check(f"Конфиг {name}", False, f"Файл {p.name} не найден (рекомендуется для полноты поддержки)",
-                      is_warning=True, file=p.relative_to(PROJECT_ROOT).as_posix())
+                      is_warning=True, file=p.relative_to(base_root).as_posix())
         else:
             log_check(f"Конфиг {name}", True)
 
     # 5. Проверка управления задачами (tasks/)
     print(f"\n{BOLD}5. Проверка подсистемы задач (agents/tasks/):{RESET}")
-    active_task = AGENTS_DIR / "tasks" / "active_task.md"
-    backlog = AGENTS_DIR / "tasks" / "backlog.md"
+    active_task = base_agents / "tasks" / "active_task.md"
+    backlog = base_agents / "tasks" / "backlog.md"
     
     has_active = active_task.is_file() and active_task.stat().st_size > 50
     if not has_active:
@@ -163,7 +167,7 @@ def run_integrity_check(fix: bool = False):
 
     # 6. Проверка непрерывной истории (history/)
     print(f"\n{BOLD}6. Проверка журнала истории (agents/history/):{RESET}")
-    history_files = [f for f in (AGENTS_DIR / "history").glob("*.md") if f.name != "README.md"]
+    history_files = [f for f in (base_agents / "history").glob("*.md") if f.name != "README.md"]
     has_history = len(history_files) > 0
     if not has_history:
         warnings_count += 1
@@ -174,11 +178,11 @@ def run_integrity_check(fix: bool = False):
     # 7. Проверка на незаполненные плейсхолдеры
     print(f"\n{BOLD}7. Проверка инициализации проекта (наличие плейсхолдеров):{RESET}")
     placeholder_files = [
-        AGENTS_DIR / "STATUS.md",
-        AGENTS_DIR / "architecture" / "CODEBASE_MAP.md",
-        AGENTS_DIR / "GLOSSARY.md",
-        AGENTS_DIR / "product" / "PRD.md",
-        AGENTS_DIR / "tasks" / "backlog.md",
+        base_agents / "STATUS.md",
+        base_agents / "architecture" / "CODEBASE_MAP.md",
+        base_agents / "GLOSSARY.md",
+        base_agents / "product" / "PRD.md",
+        base_agents / "tasks" / "backlog.md",
     ]
     all_placeholders_clean = True
     for pf in placeholder_files:
@@ -188,7 +192,7 @@ def run_integrity_check(fix: bool = False):
             if placeholders_found:
                 all_placeholders_clean = False
                 warnings_count += 1
-                rel_path = pf.relative_to(PROJECT_ROOT) if PROJECT_ROOT in pf.parents else pf.name
+                rel_path = pf.relative_to(base_root) if base_root in pf.parents else pf.name
                 log_check(
                     f"Плейсхолдеры в {rel_path}",
                     False,
@@ -203,8 +207,8 @@ def run_integrity_check(fix: bool = False):
     broken_links = []
     deprecated_links = []
     link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
-    md_files = list(AGENTS_DIR.rglob("*.md"))
-    root_agents = PROJECT_ROOT / "AGENTS.md"
+    md_files = list(base_agents.rglob("*.md"))
+    root_agents = base_root / "AGENTS.md"
     if root_agents.is_file():
         md_files.append(root_agents)
 
@@ -221,16 +225,16 @@ def run_integrity_check(fix: bool = False):
                     continue
                 if target_part.startswith("file:///"):
                     # Устаревший формат: ссылки должны быть относительными от документа
-                    deprecated_links.append((mf.relative_to(PROJECT_ROOT) if PROJECT_ROOT in mf.parents else mf.name, url))
+                    deprecated_links.append((mf.relative_to(base_root) if base_root in mf.parents else mf.name, url))
                     clean = target_part.replace("file:///", "").lstrip("/")
-                    target_path = PROJECT_ROOT / clean
+                    target_path = base_root / clean
                 elif target_part.startswith("/"):
-                    target_path = PROJECT_ROOT / target_part.lstrip("/")
+                    target_path = base_root / target_part.lstrip("/")
                 else:
                     target_path = (mf.parent / target_part).resolve()
 
                 if not (target_path.exists() or target_path.with_suffix(".md").exists()):
-                    broken_links.append((mf.relative_to(PROJECT_ROOT) if PROJECT_ROOT in mf.parents else mf.name, url))
+                    broken_links.append((mf.relative_to(base_root) if base_root in mf.parents else mf.name, url))
         except Exception:
             pass
 
@@ -259,13 +263,13 @@ def run_integrity_check(fix: bool = False):
     # 9. Проверка исполняемых правил: sync-канон, конфиги и хуки Claude Code
     print(f"\n{BOLD}9. Проверка исполняемых правил (sync + хуки Claude Code):{RESET}")
 
-    core_rules = AGENTS_DIR / "rules" / "CORE_RULES.md"
+    core_rules = base_agents / "rules" / "CORE_RULES.md"
     ok = core_rules.is_file() and core_rules.stat().st_size > 100
     if not ok:
         errors_count += 1
     log_check("Канон правил agents/rules/CORE_RULES.md", ok, "Файл отсутствует — нет источника для sync!")
 
-    settings_path = PROJECT_ROOT / ".claude" / "settings.json"
+    settings_path = base_root / ".claude" / "settings.json"
     if settings_path.is_file():
         try:
             import json as _json
@@ -289,7 +293,7 @@ def run_integrity_check(fix: bool = False):
         log_check("Хуки .claude/settings.json", False, "Файл хуков не найден (исполняемые правила не активны)",
                   is_warning=True, file=".claude/settings.json")
 
-    hooks_dir = AGENTS_DIR / "tools" / "hooks"
+    hooks_dir = base_agents / "tools" / "hooks"
     expected_hooks = ["pre_tool_gate.py", "inject_context.py", "post_edit_lint.py", "session_log.py"]
     missing_hooks = [h for h in expected_hooks if not (hooks_dir / h).is_file()]
     if missing_hooks:
@@ -297,12 +301,12 @@ def run_integrity_check(fix: bool = False):
     log_check("Скрипты хуков agents/tools/hooks/", not missing_hooks, f"Нет: {missing_hooks}")
 
     # MCP-сервер brain-mcp (опциональный extra [mcp])
-    mcp_server_path = AGENTS_DIR / "mcp" / "brain_mcp.py"
+    mcp_server_path = base_agents / "mcp" / "brain_mcp.py"
     if not mcp_server_path.is_file():
         errors_count += 1
     log_check("MCP-сервер agents/mcp/brain_mcp.py", mcp_server_path.is_file(), "Файл отсутствует")
 
-    mcpjson = PROJECT_ROOT / ".mcp.json"
+    mcpjson = base_root / ".mcp.json"
     if mcpjson.is_file():
         try:
             import json as _json
@@ -330,7 +334,7 @@ def run_integrity_check(fix: bool = False):
 
     # Секция 10: актуальность CODEBASE_MAP.md (детектор устаревания, fail-soft)
     # Если код менялся после последнего обновления карты кодовой базы — предупреждаем.
-    codebase_map = AGENTS_DIR / "architecture" / "CODEBASE_MAP.md"
+    codebase_map = base_agents / "architecture" / "CODEBASE_MAP.md"
     if codebase_map.is_file():
         try:
             import subprocess
@@ -339,7 +343,7 @@ def run_integrity_check(fix: bool = False):
                 """Unix-время последнего git-коммита, затронувшего paths (None — нет git/коммитов)."""
                 out = subprocess.run(
                     ["git", "log", "-1", "--format=%ct", "--"] + paths,
-                    cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=10,
+                    cwd=str(base_root), capture_output=True, text=True, timeout=10,
                 )
                 if out.returncode != 0 or not out.stdout.strip():
                     return None
@@ -369,7 +373,7 @@ def run_integrity_check(fix: bool = False):
     # файлы; ловится и в CI, и в git pre-commit (он запускает этот скрипт)
     try:
         import secret_scan
-        findings = secret_scan.scan_project(root=PROJECT_ROOT)
+        findings = secret_scan.scan_project(root=base_root)
     except Exception as e:
         findings = None
         warnings_count += 1
@@ -392,7 +396,7 @@ def run_integrity_check(fix: bool = False):
     # Секция 12: линт памяти (PLAN-010) — дисциплина записей, warn-уровень
     try:
         import memory_lint
-        lint_findings = memory_lint.lint_memory(root=PROJECT_ROOT)
+        lint_findings = memory_lint.lint_memory(root=base_root)
     except Exception as e:
         lint_findings = None
         warnings_count += 1

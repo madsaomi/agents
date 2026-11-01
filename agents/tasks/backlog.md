@@ -14,8 +14,7 @@
 - [ ] Живой смоук Codex `/hooks` (trust-review) — внешний блокер: CLI Codex не установлен у заказчика.
 
 ### 📌 Средний приоритет (Medium)
-- [ ] **TASK-015:** Root-aware остатки класса BUG-002: `run_integrity_check` (секреты/структура сканируют расположение модуля) и цель `brain dump` (`context_dump.md` пишется рядом с модулем, а не в root).
-- [ ] **TASK-012:** `brain digest` — сжатая сводка памяти для веб-чатов (сначала сверить с `dump --budget`, чтобы не дублировать).
+- [ ] README на английском (фаза M2 — расширение аудитории).
 - [ ] README на английском (фаза M2 — расширение аудитории).
 
 ### 💡 Идеи на будущее (Ideas & Nice-to-Have)
@@ -33,3 +32,5 @@
 - TASK-014 — Жизненный цикл памяти: handoff/archive/lint (PLAN-010)
 - TASK-013 — Root-aware фабрики артефактов (PLAN-011)
 - TASK-011 — `brain graph`: mermaid-граф вики-связей (PLAN-012)
+- TASK-015 — Root-aware `run_integrity_check` и цель `dump` (PLAN-013)
+- TASK-012 — `brain digest`: компактная сводка (PLAN-013)

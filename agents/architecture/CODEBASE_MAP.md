@@ -49,6 +49,7 @@ Second Brain Template/
 │   │   ├── archive_task.py         # 🗄️ Архивация активной задачи + сброс active_task (PLAN-010)
 │   │   ├── memory_lint.py          # 🧹 Линт памяти: дисциплина записей (секция 12 check, PLAN-010)
 │   │   ├── graph.py                # 🕸️ Mermaid-граф вики-связей (поверх links.py, PLAN-012)
+│   │   ├── digest.py               # 🧠 Компактный дайджест (поверх handoff+stats, PLAN-013)
 │   │   ├── new_plan.py / end_session.py / dump_context.py / init_project.py   # фабрики и утилиты (фабрики root-aware, PLAN-011)
 │   │   └── hooks/                  # Хуки Claude Code (gate, context, lint, session log)
 │   ├── mcp/brain_mcp.py            # 🧩 MCP-сервер (9 инструментов, optional extra [mcp])
@@ -80,7 +81,7 @@ Second Brain Template/
 | `agents/tools/search.py` | 🔍 Поиск по памяти (FTS5) | `index_memory()`, `search_memory(tags=, since=)`, `parse_tags()`, `_fts_query()` | `tests/test_search.py`; индекс `.brain_index.db` в .gitignore; авто-миграция `docs.tags` |
 | `agents/tools/locks.py` | 🤝 Блокировки задач (мультиагентность) | `claim_task()`, `release_task()`, `list_claims()`, `_lock_status()` (heartbeat-TTL) | `tests/test_claim.py`; локи `agents/tasks/.locks/` в .gitignore |
 | `agents/tools/dump_context.py` | 📦 Контекст для веб-чатов (+ `--budget`) | `build_context_dump(root, budget)`, `_compact()`, `estimate_tokens()` | `tests/test_dump_budget.py`; бюджет держит ядро «статус+задача» |
-| `agents/tools/check_integrity.py` | Целостность системы (11 секций) | `run_integrity_check(fix=)`, `log_check()` (GitHub-аннотации `::error`/`::warning`) | Запуск без ошибок; fail-soft без git; секреты сканируются всегда |
+| `agents/tools/check_integrity.py` | Целостность системы (12 секций) | `run_integrity_check(fix=, root=)` (PLAN-013), `log_check()` (GitHub-аннотации `::error`/`::warning`) | Запуск без ошибок; fail-soft без git; секреты сканируются всегда; root → проект пользователя |
 | `agents/tools/secret_scan.py` | 🛡️ Сканер секретов (токены, ключи, пароли) | `scan_project()`, `scan_files()`, `_is_placeholder()` | `tests/test_secret_scan.py`; плейсхолдеры `${ENV}` не ловятся; `secretscan: off` |
 | `agents/tools/stats.py` | 📊 Дашборд здоровья памяти | `collect_stats()`, `format_stats()`, `_broken_links()` | `tests/test_stats.py`; `brain.py stats [--json]`; секции битых `[[связей]]` и top-тегов |
 | `agents/tools/doctor.py` | 🩺 Диагностика окружения (PLAN-008) | `collect_doctor()`, `format_doctor()`; 7 проверок: python/fts5/git/index/clipboard/mcp/write_access | `tests/test_doctor.py`; `brain.py doctor [--json]`; свежесть индекса через `search.MEMORY_SECTIONS`; warn не валят exit code |
@@ -88,6 +89,7 @@ Second Brain Template/
 | `agents/tools/archive_task.py` | 🗄️ Архивация активной задачи (PLAN-010) | `archive_active_task(root, force)`; номер архива из TASK-ID заголовка, fallback max+1 | `tests/test_lifecycle.py`; `brain.py archive [--force]`; архив пишется ДО сброса active_task; перезапись запрещена |
 | `agents/tools/memory_lint.py` | 🧹 Линт памяти (PLAN-010, секция 12) | `lint_memory(root)` → findings; планы/задача/ADR/баги | `tests/test_lifecycle.py`; warn-уровень; example/README исключены |
 | `agents/tools/graph.py` | 🕸️ Mermaid-граф связей (PLAN-012) | `collect_graph(root)`, `render_mermaid(graph, max_nodes)`, `format_summary()`; узлы/рёбра/фантомы битых | `tests/test_graph.py`; `brain.py graph [--json] [--max N]`; переиспользует `links.find_links/build_index` |
+| `agents/tools/digest.py` | 🧠 Компактный дайджест (PLAN-013) | `render_digest(handoff_report, stats, max_tokens)`; без нового парсинга | `tests/test_final.py`; `brain.py digest [--tokens N] [--copy]`; бюджет ~3 симв/токен |
 | `agents/tools/links.py` | 🔗 Вики-связи `[[...]]` и обратные ссылки | `find_links()`, `links_for()`, `unresolved_links()`, `build_index()` | `tests/test_links.py`; `brain.py links <ID> [--unresolved]`; плейсхолдеры — не ошибки |
 | `agents/tools/hooks/*.py` | Исполняемые хуки Claude Code / Codex / OpenCode-плагина | `pre_tool_gate` (вкл. apply_patch-патчи Codex), `inject_context`, `post_edit_lint`, `session_log` | `tests/test_hooks.py` (17 сценариев); контракт deny — `hookSpecificOutput.permissionDecision` |
 | `.opencode/plugins/second_brain/index.ts` | Plan-First-гейт OpenCode (permission.evaluate → pre_tool_gate, fail-open) | `Plugin.define`, `runGate()`, `buildPayload()` | `tests/test_sync.py::TestPluginFile`; `opencode plugin list`; deny читается из stdout гейта |
@@ -95,7 +97,7 @@ Second Brain Template/
 | `agents/presets/*/preset.json` | Манифесты пресетов стека | `files[]` (src → dst) | `tests/test_presets.py`; секретов в env.example нет |
 | `agents/templates/sync/*.tpl` | Шаблоны 7 конфигов AI-инструментов | плейсхолдеры `{{...}}`; JSON-шаблоны Codex/OpenCode без маркера | `brain.py sync` — дрейф отсутствует |
 | `brain.py::transform_opencode_md` | Трансформа Claude → OpenCode (команды/агенты) | description + `mode: subagent`, read-only → deny permissions | `tests/test_sync.py::TestTransformOpencodeMd`; `$ARGUMENTS` сохраняется |
-| `tests/` | Набор авто-тестов (295) | unittest (stdlib) | `python -m unittest discover -s tests` |
+| `tests/` | Набор авто-тестов (305) | unittest (stdlib) | `python -m unittest discover -s tests` |
 | `.github/workflows/integrity.yml` | CI-ворота | compile → unittest → sync --check → integrity | Матрица Python 3.9/3.11/3.13 зелёная |
 
 > [!TIP]

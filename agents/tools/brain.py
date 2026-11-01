@@ -87,6 +87,7 @@ import doctor as env_doctor
 import handoff as brain_handoff
 import archive_task as task_archive
 import graph as memory_graph
+import digest as memory_digest
 from tour import TOUR_SCREENS, render_screens  # noqa: F401 — TOUR_SCREENS: реэкспорт (PLAN-009)
 
 # -----------------------------------------------------------------------------
@@ -690,6 +691,11 @@ def main():
     archive_parser = subparsers.add_parser("archive", help="Архивировать завершённую задачу и сбросить active_task")
     archive_parser.add_argument("--force", action="store_true", help="Архивировать даже при незакрытых пунктах")
 
+    # digest (PLAN-013)
+    digest_parser = subparsers.add_parser("digest", help="Компактный дайджест проекта для веб-чатов (бюджет токенов)")
+    digest_parser.add_argument("--tokens", type=int, default=None, help="Бюджет токенов (усечение хвоста)")
+    digest_parser.add_argument("--copy", action="store_true", help="Скопировать дайджест в буфер обмена")
+
     # links (PLAN-005)
     links_parser = subparsers.add_parser("links", help="Вики-связи [[...]]: исходящие, обратные ссылки")
     links_parser.add_argument("query", nargs="?", default="", help="ID/имя записи (напр. BUG-001)")
@@ -797,7 +803,8 @@ def cmd_task(args):
 
 def cmd_dump(args):
     dump = build_context_dump(root=PROJECT_ROOT, budget=args.budget)
-    dump_file = SCRIPT_DIR / "context_dump.md"
+    # Файл — в проекте пользователя, а не рядом с модулем (PLAN-013, TASK-015)
+    dump_file = PROJECT_ROOT / "agents" / "tools" / "context_dump.md"
     dump_file.write_text(dump, encoding="utf-8")
     copied = copy_to_clipboard(dump)
     est = estimate_tokens(dump)
@@ -814,7 +821,7 @@ def cmd_dump(args):
 
 
 def cmd_check(args):
-    run_integrity_check(fix=args.fix)
+    run_integrity_check(fix=args.fix, root=PROJECT_ROOT)
 
 
 def cmd_sync(args):
@@ -921,6 +928,18 @@ def cmd_archive(args):
         sys.exit(1)
 
 
+def cmd_digest(args):
+    report = brain_handoff.collect_handoff(root=PROJECT_ROOT)
+    stats = memory_stats.collect_stats(root=PROJECT_ROOT)
+    text = memory_digest.render_digest(report, stats, max_tokens=args.tokens)
+    print(text)
+    if args.copy:
+        if copy_to_clipboard(text):
+            print(f"\n{GREEN}🎉 Дайджест скопирован в буфер обмена.{RESET}")
+        else:
+            print("\nБуфер обмена недоступен — скопируй текст выше вручную.")
+
+
 def cmd_tour(args):
     render_screens(TOUR_SCREENS, interactive=not args.list and sys.stdin.isatty())
     sys.exit(0)
@@ -1025,6 +1044,7 @@ HANDLERS = {
     "doctor": cmd_doctor,
     "handoff": cmd_handoff,
     "archive": cmd_archive,
+    "digest": cmd_digest,
     "tour": cmd_tour,
     "links": cmd_links,
     "graph": cmd_graph,

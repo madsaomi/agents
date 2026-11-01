@@ -1,26 +1,35 @@
-# 📋 Активная задача: TASK-011 — `brain graph`: mermaid-граф связей памяти
+# 📋 Активная задача: TASK-010 — PyPI v0.5.0 (подготовка завершена)
 
-**Статус:** ✅ COMPLETED (Завершена)  
+**Статус:** 🔵 IN_PROGRESS — остался шаг публикации (нужен PyPI-токен заказчика)  
 **Дата создания:** 2026-11-01  
-**Дата завершения:** 2026-11-01  
 **Исполнитель:** ZCode (GLM)  
-**Приоритет:** MEDIUM  
-**Связанный план:** [`PLAN-012`](../plans/plan_012_brain_graph_mermaid-graf_svyazey.md)  
+**Приоритет:** HIGH  
+**Связанный план:** [`PLAN-014`](../plans/plan_014_pypi_v050_podgotovka_reliza.md)  
 
 ---
 
 ## Чек-лист
 
-- [x] **Этап 1:** `agents/tools/graph.py` — `collect_graph(root)` (узлы из `links.build_index`, рёбра dedupe из `links.find_links`, битые отдельно, self-ссылки отброшены), `render_mermaid(graph, max_nodes)` (топ-N по степени, id `m<N>`/`p<N>`, подписи в кавычках с эмодзи разделов, фантомы `-.->`), `format_summary()`
-- [x] **Этап 2:** brain.py — subparser `graph [--json] [--max N]` + `cmd_graph`; тур 4/7 — строка
-- [x] **Этап 3:** `tests/test_graph.py` — 14 тестов (узлы/рёбра/dedupe, self-link, unresolved, секции, mermaid-формат, лимит, пустая память, JSON, CLI-смоуки ×3). По ходу: (а) секция парсится из `agents/<раздел>/...` (каталог проекта сам называется agents); (б) сводка вынесена в `format_summary` для диспетчера. Suite: **295 tests, 0 failures, 1 skip**
-- [x] **Этап 4:** README (+1 команда), STATUS (295, фаза 003…012), CODEBASE_MAP (дерево+таблица), backlog (TASK-011 → Выполнено), `sync --check` чист, integrity 100%, коммит `feat(plan-012)`, запись в history
+### Предыдущий план — [PLAN-013](../plans/plan_013_finalnyy_kod_root-check_dump-target_digest.md): ✅ COMPLETED
+- [x] `run_integrity_check(fix=, root=)` — проверяет проект пользователя (класс BUG-002 закрыт полностью)
+- [x] `brain dump` пишет `context_dump.md` в `root/agents/tools/`
+- [x] `brain digest [--tokens N] [--copy]` — дайджест поверх handoff/stats (PLAN-013)
+- [x] 305 тестов, sync --check чист, integrity 100%, коммит
 
-## Примечания
+### PLAN-014 — PyPI v0.5.0
+- [x] Шаг 1: release-checklist пройден (тесты 305, integrity 100%, sync чист, секрет-скан чист)
+- [x] Шаг 2: версия 0.4.0 → **0.5.0**; установлены build/twine
+- [x] Шаг 3: `python -m build` — sdist + wheel собраны; `twine check` — PASSED
+- [x] Шаг 4: venv-смоук дистрибутива из чужого cwd: `brain --help`/`status`/`plan` пишут в cwd-проект (root-aware работает в установленном пакете)
+- [x] Шаг 5: коммит `chore(release): v0.5.0`, тег `v0.5.0`
+- [ ] **Шаг 6: публикация** — `twine upload dist/*` (нужен PyPI-токен заказчика; наружное действие)
 
-- На живом репо: 38 узлов, 2 ребра (планы → BUG-001), 2 битые связи на `MISSING-999` (из смоков тестов) — рисуются пунктиром.
-- Mermaid-блок вставляется в GitHub/README без доработок.
+## Инструкция по публикации (шаг 6)
 
-## Следующая задача
-
-- Из backlog: TASK-010 (PyPI v0.5.0, разблокирована) / TASK-012 (brain digest) / TASK-015 (root-остатки) — по выбору заказчика.
+```bash
+# 1. Создай API-токен на pypi.org (Account settings → API tokens, scope: entire account или новый проект)
+# 2. Загрузи (токен передаётся один раз, не коммитить!):
+python -m twine upload dist/* -u __token__ -p <PYPI_TOKEN>
+# 3. Проверь: https://pypi.org/project/second-brain-template/
+# 4. После публикации: pip install second-brain-template
+```
