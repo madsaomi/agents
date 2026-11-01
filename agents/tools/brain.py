@@ -70,46 +70,7 @@ AGENTS_DIR = PROJECT_ROOT / "agents"
 # Источник шаблонов/пресетов всегда рядом со скриптом (работает и в пакете)
 PRESETS_SOURCE_DIR = SCRIPT_DIR.parent / "presets"
 
-# Экраны интерактивного тура (PLAN-004): (заголовок, содержимое)
-TOUR_SCREENS = [
-    ("🧠 Добро пожаловать во Второй Мозг!",
-     "Этот шаблон превращает markdown-правила в исполняемую систему.\n"
-     "Память проекта живёт в каталоге agents/, инструменты — в agents/tools/.\n"
-     "Точка входа для агентов: AGENTS.md → agents/AGENT_GUIDE.md."),
-    ("1/7 📚 Память: разделы agents/",
-     "  plans/          — планы реализации (Plan-First)\n"
-     "  tasks/          — активная задача, архив, локи claim\n"
-     "  history/        — отчёты сессий (append-only, ничего не затирать)\n"
-     "  bugs_and_fixes/ — баги и их решения\n"
-     "  decisions/      — ADR (архитектурные решения)\n"
-     "  walkthroughs/   — отчёты о сдаче этапов"),
-    ("2/7 📐 Сначала план — потом код",
-     "  python brain.py plan \"Название\"     — создать PLAN-XXX\n"
-     "  Правка кода без плана блокируется хуком Plan-First (Claude Code),\n"
-     "  а правило зафиксировано в agents/rules/CORE_RULES.md (п. 1)."),
-    ("3/7 ⚙️ Единый источник правил",
-     "  Правь ТОЛЬКО agents/rules/CORE_RULES.md, затем:\n"
-     "  python brain.py sync          — перегенерировать CLAUDE.md, .cursorrules,\n"
-     "                                  .windsurfrules, copilot, .cursor/rules\n"
-     "  python brain.py sync --check  — проверить дрейф (ловится в CI)"),
-    ("4/7 🔍 Поиск и контекст",
-     "  python brain.py search \"jwt timeout\"   — FTS5-поиск по всей памяти\n"
-     "  python brain.py stats [--json]          — дашборд здоровья памяти\n"
-     "  python brain.py dump --budget 4000      — контекст в буфер под лимит токенов"),
-    ("5/7 🤝 Параллельная работа агентов",
-     "  python brain.py claim TASK-XXX [--worktree]  — забрать задачу (лок)\n"
-     "  python brain.py claims                       — кто что держит\n"
-     "  python brain.py release TASK-XXX             — освободить"),
-    ("6/7 🔌 Расширения",
-     "  MCP-инструменты: pip install \".[mcp]\" → python agents/mcp/brain_mcp.py\n"
-     "  Пресеты стека:   python brain.py preset django-drf | fastapi | nextjs | aiogram-bot\n"
-     "  Обновление:      python brain.py upgrade (не затирает ваши правки)\n"
-     "  Проверка:        python brain.py check [--fix] · python brain.py doctor (окружение)"),
-    ("7/7 ✅ Готово!",
-     "Начни с agents/STATUS.md и agents/tasks/active_task.md.\n"
-     "Полный гайд: AGENTS.md · README.md · agents/AGENT_GUIDE.md\n"
-     "Команда снова: python brain.py tour"),
-]
+# Экраны тура вынесены в agents/tools/tour.py (PLAN-009); реэкспорт ниже — для совместимости.
 
 # Импортируем существующие утилиты
 sys.path.insert(0, str(SCRIPT_DIR))
@@ -123,6 +84,7 @@ import locks as task_locks
 import stats as memory_stats
 import links as memory_links
 import doctor as env_doctor
+from tour import TOUR_SCREENS, render_screens  # noqa: F401 — TOUR_SCREENS: реэкспорт (PLAN-009)
 
 # -----------------------------------------------------------------------------
 # Вспомогательные функции нумерации
@@ -758,244 +720,278 @@ def main():
     args = parser.parse_args()
 
     if not args.command or args.command == "status":
-        show_status()
+        cmd_status(args)
         return
 
-    if args.command == "plan":
-        name = args.name
-        if not name:
-            name = input("Введите название плана / фичи: ").strip()
-        if not name:
-            print("❌ Название не может быть пустым.")
-            return
-        p = create_plan(name=name, task_id=args.task, agent=args.agent)
-        rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
-        print(f"🎉 План создан: {GREEN}{rel}{RESET}")
+    HANDLERS[args.command](args)
 
-    elif args.command == "bug":
-        title = args.title
-        if not title:
-            title = input("Введите краткое описание бага: ").strip()
-        if not title:
-            print("❌ Описание не может быть пустым.")
-            return
-        p = create_bug_report(title=title, component=args.component, agent=args.agent)
-        rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
-        print(f"🐛 Баг-репорт создан: {YELLOW}{rel}{RESET}")
 
-    elif args.command == "adr":
-        title = args.title
-        if not title:
-            title = input("Введите название архитектурного решения: ").strip()
-        if not title:
-            print("❌ Название не может быть пустым.")
-            return
-        p = create_adr_record(title=title, agent=args.agent)
-        rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
-        print(f"🏛️ ADR создан: {BLUE}{rel}{RESET}")
+# --- Хендлеры подкоманд (PLAN-009): тела веток бывшей if/elif-цепочки, поведение не менялось ---
 
-    elif args.command == "task":
-        title = args.title
-        if not title:
-            title = input("Введите название задачи: ").strip()
-        if not title:
-            print("❌ Название не может быть пустым.")
-            return
-        p = create_task_card(title=title, priority=args.priority, agent=args.agent)
-        rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
-        print(f"📋 Карточка задачи создана: {MAGENTA}{rel}{RESET}")
+def cmd_status(args):
+    show_status()
 
-    elif args.command == "dump":
-        dump = build_context_dump(root=PROJECT_ROOT, budget=args.budget)
-        dump_file = SCRIPT_DIR / "context_dump.md"
-        dump_file.write_text(dump, encoding="utf-8")
-        copied = copy_to_clipboard(dump)
-        est = estimate_tokens(dump)
-        if args.budget:
-            print(f"✓ Контекст сформирован под бюджет {args.budget} токенов "
-                  f"(оценка ~{est}, символов {len(dump)}).")
-        else:
-            print(f"✓ Контекст сформирован ({len(dump)} символов, ~{est} токенов). "
-                  f"Лимит: --budget N")
-        if copied:
-            print(f"{GREEN}🎉 Контекст скопирован в буфер обмена! Нажмите Ctrl+V в чате AI.{RESET}")
-        else:
-            print("Сохранено в agents/tools/context_dump.md")
 
-    elif args.command == "check":
-        run_integrity_check(fix=args.fix)
+def cmd_plan(args):
+    name = args.name
+    if not name:
+        name = input("Введите название плана / фичи: ").strip()
+    if not name:
+        print("❌ Название не может быть пустым.")
+        return
+    p = create_plan(name=name, task_id=args.task, agent=args.agent)
+    rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
+    print(f"🎉 План создан: {GREEN}{rel}{RESET}")
 
-    elif args.command == "sync":
-        sys.exit(sync_tools(check=args.check))
 
-    elif args.command == "search":
-        if args.reindex:
-            count = memory_search.index_memory(root=PROJECT_ROOT)
-            print(f"✅ Переиндексировано: {count} документов → {memory_search.INDEX_FILE.name}")
-            sys.exit(0)
-        if not args.query:
-            print("❌ Укажи запрос: python brain.py search \"jwt timeout\"")
-            sys.exit(1)
+def cmd_bug(args):
+    title = args.title
+    if not title:
+        title = input("Введите краткое описание бага: ").strip()
+    if not title:
+        print("❌ Описание не может быть пустым.")
+        return
+    p = create_bug_report(title=title, component=args.component, agent=args.agent)
+    rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
+    print(f"🐛 Баг-репорт создан: {YELLOW}{rel}{RESET}")
+
+
+def cmd_adr(args):
+    title = args.title
+    if not title:
+        title = input("Введите название архитектурного решения: ").strip()
+    if not title:
+        print("❌ Название не может быть пустым.")
+        return
+    p = create_adr_record(title=title, agent=args.agent)
+    rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
+    print(f"🏛️ ADR создан: {BLUE}{rel}{RESET}")
+
+
+def cmd_task(args):
+    title = args.title
+    if not title:
+        title = input("Введите название задачи: ").strip()
+    if not title:
+        print("❌ Название не может быть пустым.")
+        return
+    p = create_task_card(title=title, priority=args.priority, agent=args.agent)
+    rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
+    print(f"📋 Карточка задачи создана: {MAGENTA}{rel}{RESET}")
+
+
+def cmd_dump(args):
+    dump = build_context_dump(root=PROJECT_ROOT, budget=args.budget)
+    dump_file = SCRIPT_DIR / "context_dump.md"
+    dump_file.write_text(dump, encoding="utf-8")
+    copied = copy_to_clipboard(dump)
+    est = estimate_tokens(dump)
+    if args.budget:
+        print(f"✓ Контекст сформирован под бюджет {args.budget} токенов "
+              f"(оценка ~{est}, символов {len(dump)}).")
+    else:
+        print(f"✓ Контекст сформирован ({len(dump)} символов, ~{est} токенов). "
+              f"Лимит: --budget N")
+    if copied:
+        print(f"{GREEN}🎉 Контекст скопирован в буфер обмена! Нажмите Ctrl+V в чате AI.{RESET}")
+    else:
+        print("Сохранено в agents/tools/context_dump.md")
+
+
+def cmd_check(args):
+    run_integrity_check(fix=args.fix)
+
+
+def cmd_sync(args):
+    sys.exit(sync_tools(check=args.check))
+
+
+def cmd_search(args):
+    if args.reindex:
+        count = memory_search.index_memory(root=PROJECT_ROOT)
+        print(f"✅ Переиндексировано: {count} документов → {memory_search.INDEX_FILE.name}")
+        sys.exit(0)
+    if not args.query:
+        print("❌ Укажи запрос: python brain.py search \"jwt timeout\"")
+        sys.exit(1)
+    try:
+        results = memory_search.search_memory(
+            args.query, limit=args.limit, root=PROJECT_ROOT,
+            tags=args.tag, since=args.since,
+        )
+    except ValueError as e:
+        print(f"❌ {e}")
+        sys.exit(1)
+    shown = args.query
+    filt = []
+    if args.tag:
+        filt.append("теги=" + ",".join(args.tag))
+    if args.since:
+        filt.append(f"с {args.since}")
+    if filt:
+        shown += " [" + ", ".join(filt) + "]"
+    print(memory_search.format_results(shown, results))
+    sys.exit(0)
+
+
+def cmd_claim(args):
+    ok, msg = task_locks.claim_task(
+        args.task, agent=args.agent, note=args.note, force=args.force,
+        worktree=args.worktree, root=PROJECT_ROOT,
+    )
+    print(msg)
+    sys.exit(0 if ok else 1)
+
+
+def cmd_release(args):
+    ok, msg = task_locks.release_task(
+        args.task, agent=args.agent, force=args.force,
+        remove_worktree=args.worktree, root=PROJECT_ROOT,
+    )
+    print(msg)
+    sys.exit(0 if ok else 1)
+
+
+def cmd_claims(args):
+    claims = task_locks.list_claims(root=PROJECT_ROOT)
+    if not claims:
+        print("Свободно: активных блокировок задач нет.")
+    else:
+        print(f"{BOLD}🔒 Активные блокировки задач ({len(claims)}):{RESET}")
+        for c in claims:
+            mark = {"active": f"{GREEN}🟢{RESET}", "stale": f"{RED}💀{RESET}",
+                    "unknown": f"{YELLOW}❓{RESET}"}.get(c.get("status"), "❓")
+            line = (f"  {mark} {c.get('task', '?'):<14} {c.get('agent', '?'):<16} "
+                    f"PID {c.get('pid', '?')} с {c.get('created', '?')}")
+            if c.get("worktree"):
+                line += f"\n       worktree: {c['worktree']}"
+            if c.get("note"):
+                line += f"\n       заметка: {c['note']}"
+            print(line)
+        print(f"\n{GREEN}🟢{RESET} жив · {RED}💀{RESET} владелец мёртв (перехватится) · {YELLOW}❓{RESET} статус неизвестен")
+
+
+def cmd_stats(args):
+    stats = memory_stats.collect_stats(root=PROJECT_ROOT, stale_days=args.stale_days)
+    if args.json:
+        print(json.dumps(stats, ensure_ascii=False, indent=2))
+    else:
+        print(memory_stats.format_stats(stats))
+    sys.exit(0)
+
+
+def cmd_doctor(args):
+    report = env_doctor.collect_doctor(root=PROJECT_ROOT)
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    else:
+        print(env_doctor.format_doctor(report))
+    sys.exit(1 if report["summary"]["errors"] else 0)
+
+
+def cmd_tour(args):
+    render_screens(TOUR_SCREENS, interactive=not args.list and sys.stdin.isatty())
+    sys.exit(0)
+
+
+def cmd_links(args):
+    code = memory_links.main(
+        ([args.query] if args.query else []) + (["--unresolved"] if args.unresolved else [])
+    )
+    sys.exit(code)
+
+
+def cmd_presets(args):
+    presets = list_presets()
+    if not presets:
+        print("Пресеты не найдены в agents/presets/.")
+    else:
+        print(f"{BOLD}Доступные пресеты стека:{RESET}")
+        for name in presets:
+            desc = ""
+            manifest = PRESETS_SOURCE_DIR / name / "preset.json"
+            if manifest.is_file():
+                try:
+                    desc = json.loads(manifest.read_text(encoding="utf-8")).get("description", "")
+                except (OSError, ValueError):
+                    pass
+            print(f"  • {GREEN}{name:<14}{RESET} {desc}")
+        print(f"\nПрименение: {BOLD}python brain.py preset <имя>{RESET}")
+
+
+def cmd_preset(args):
+    apply_preset(args.name, force=args.force)
+
+
+def cmd_upgrade(args):
+    sys.exit(upgrade_tool())
+
+
+def cmd_end(args):
+    auto_done = extract_completed_tasks_from_active()
+    done_items = [d.strip() for d in args.done.split(";")] if args.done else (auto_done if auto_done else ["Работы выполнены."])
+    next_step = args.next or "Продолжить по плану."
+    end_session(agent=args.agent, task_id=args.task, done_items=done_items, next_steps=next_step)
+
+
+def cmd_init(args):
+    name = args.name
+    if not name:
         try:
-            results = memory_search.search_memory(
-                args.query, limit=args.limit, root=PROJECT_ROOT,
-                tags=args.tag, since=args.since,
-            )
-        except ValueError as e:
-            print(f"❌ {e}")
-            sys.exit(1)
-        shown = args.query
-        filt = []
-        if args.tag:
-            filt.append("теги=" + ",".join(args.tag))
-        if args.since:
-            filt.append(f"с {args.since}")
-        if filt:
-            shown += " [" + ", ".join(filt) + "]"
-        print(memory_search.format_results(shown, results))
-        sys.exit(0)
-
-    elif args.command == "claim":
-        ok, msg = task_locks.claim_task(
-            args.task, agent=args.agent, note=args.note, force=args.force,
-            worktree=args.worktree, root=PROJECT_ROOT,
-        )
-        print(msg)
-        sys.exit(0 if ok else 1)
-
-    elif args.command == "release":
-        ok, msg = task_locks.release_task(
-            args.task, agent=args.agent, force=args.force,
-            remove_worktree=args.worktree, root=PROJECT_ROOT,
-        )
-        print(msg)
-        sys.exit(0 if ok else 1)
-
-    elif args.command == "claims":
-        claims = task_locks.list_claims(root=PROJECT_ROOT)
-        if not claims:
-            print("Свободно: активных блокировок задач нет.")
-        else:
-            print(f"{BOLD}🔒 Активные блокировки задач ({len(claims)}):{RESET}")
-            for c in claims:
-                mark = {"active": f"{GREEN}🟢{RESET}", "stale": f"{RED}💀{RESET}",
-                        "unknown": f"{YELLOW}❓{RESET}"}.get(c.get("status"), "❓")
-                line = (f"  {mark} {c.get('task', '?'):<14} {c.get('agent', '?'):<16} "
-                        f"PID {c.get('pid', '?')} с {c.get('created', '?')}")
-                if c.get("worktree"):
-                    line += f"\n       worktree: {c['worktree']}"
-                if c.get("note"):
-                    line += f"\n       заметка: {c['note']}"
-                print(line)
-            print(f"\n{GREEN}🟢{RESET} жив · {RED}💀{RESET} владелец мёртв (перехватится) · {YELLOW}❓{RESET} статус неизвестен")
-
-    elif args.command == "stats":
-        stats = memory_stats.collect_stats(root=PROJECT_ROOT, stale_days=args.stale_days)
-        if args.json:
-            print(json.dumps(stats, ensure_ascii=False, indent=2))
-        else:
-            print(memory_stats.format_stats(stats))
-        sys.exit(0)
-
-    elif args.command == "doctor":
-        report = env_doctor.collect_doctor(root=PROJECT_ROOT)
-        if args.json:
-            print(json.dumps(report, ensure_ascii=False, indent=2))
-        else:
-            print(env_doctor.format_doctor(report))
-        sys.exit(1 if report["summary"]["errors"] else 0)
-
-    elif args.command == "tour":
-        screens = TOUR_SCREENS
-        if args.list or not sys.stdin.isatty():
-            for i, (title, body) in enumerate(screens, 1):
-                bar = "═" * 58
-                print(f"\n{BOLD}{CYAN}{bar}{RESET}")
-                print(f"{BOLD}{title}{RESET}")
-                print(f"{CYAN}{bar}{RESET}")
-                print(body)
-            print()
-        else:
-            total = len(screens)
-            for i, (title, body) in enumerate(screens, 1):
-                print(f"\n{BOLD}{CYAN}{'═' * 58}{RESET}")
-                print(f"{BOLD}{title}{RESET}  {CYAN}({i}/{total}){RESET}")
-                print(f"{CYAN}{'═' * 58}{RESET}")
-                print(body)
-                if i < total:
-                    try:
-                        input(f"\n{CYAN}→ Enter — дальше, Ctrl+C — выход…{RESET}")
-                    except (EOFError, KeyboardInterrupt):
-                        print("\nТур прерван. Вернуться: python brain.py tour")
-                        break
-        sys.exit(0)
-
-    elif args.command == "links":
-        code = memory_links.main(
-            ([args.query] if args.query else []) + (["--unresolved"] if args.unresolved else [])
-        )
-        sys.exit(code)
-
-    elif args.command == "presets":
-        presets = list_presets()
-        if not presets:
-            print("Пресеты не найдены в agents/presets/.")
-        else:
-            print(f"{BOLD}Доступные пресеты стека:{RESET}")
-            for name in presets:
-                desc = ""
-                manifest = PRESETS_SOURCE_DIR / name / "preset.json"
-                if manifest.is_file():
-                    try:
-                        desc = json.loads(manifest.read_text(encoding="utf-8")).get("description", "")
-                    except (OSError, ValueError):
-                        pass
-                print(f"  • {GREEN}{name:<14}{RESET} {desc}")
-            print(f"\nПрименение: {BOLD}python brain.py preset <имя>{RESET}")
-
-    elif args.command == "preset":
-        apply_preset(args.name, force=args.force)
-
-    elif args.command == "upgrade":
-        sys.exit(upgrade_tool())
-
-    elif args.command == "end":
-        auto_done = extract_completed_tasks_from_active()
-        done_items = [d.strip() for d in args.done.split(";")] if args.done else (auto_done if auto_done else ["Работы выполнены."])
-        next_step = args.next or "Продолжить по плану."
-        end_session(agent=args.agent, task_id=args.task, done_items=done_items, next_steps=next_step)
-
-    elif args.command == "init":
-        name = args.name
-        if not name:
-            try:
-                default_name = PROJECT_ROOT.name if PROJECT_ROOT.name else "My Project"
-                name = input(f"Название проекта [{default_name}]: ").strip() or default_name
-                desc = input("Описание проекта: ").strip() or "Проект в разработке"
-                stack = input("Технологический стек [Python]: ").strip() or "Python"
-                agent = input(f"Имя агента [{args.agent}]: ").strip() or args.agent
-            except (EOFError, KeyboardInterrupt):
-                print("\nВвод прерван.")
-                return
-        else:
-            desc = args.desc or "Проект в разработке"
-            stack = args.stack or "Python"
-            agent = args.agent
-        init_project(name=name, desc=desc, stack=stack, agent=agent)
-        if args.preset:
-            print()
-            apply_preset(args.preset)
-
-    elif args.command == "walkthrough":
-        title = args.title
-        if not title:
-            title = input("Введите название фичи / демо: ").strip()
-        if not title:
-            print("❌ Название не может быть пустым.")
+            default_name = PROJECT_ROOT.name if PROJECT_ROOT.name else "My Project"
+            name = input(f"Название проекта [{default_name}]: ").strip() or default_name
+            desc = input("Описание проекта: ").strip() or "Проект в разработке"
+            stack = input("Технологический стек [Python]: ").strip() or "Python"
+            agent = input(f"Имя агента [{args.agent}]: ").strip() or args.agent
+        except (EOFError, KeyboardInterrupt):
+            print("\nВвод прерван.")
             return
-        p = create_walkthrough(title=title, plan_id=args.plan, task_id=args.task, agent=args.agent)
-        rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
-        print(f"🚀 Walkthrough-отчёт создан: {GREEN}{rel}{RESET}")
+    else:
+        desc = args.desc or "Проект в разработке"
+        stack = args.stack or "Python"
+        agent = args.agent
+    init_project(name=name, desc=desc, stack=stack, agent=agent)
+    if args.preset:
+        print()
+        apply_preset(args.preset)
+
+
+def cmd_walkthrough(args):
+    title = args.title
+    if not title:
+        title = input("Введите название фичи / демо: ").strip()
+    if not title:
+        print("❌ Название не может быть пустым.")
+        return
+    p = create_walkthrough(title=title, plan_id=args.plan, task_id=args.task, agent=args.agent)
+    rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
+    print(f"🚀 Walkthrough-отчёт создан: {GREEN}{rel}{RESET}")
+
+
+HANDLERS = {
+    "plan": cmd_plan,
+    "bug": cmd_bug,
+    "adr": cmd_adr,
+    "task": cmd_task,
+    "dump": cmd_dump,
+    "check": cmd_check,
+    "sync": cmd_sync,
+    "search": cmd_search,
+    "claim": cmd_claim,
+    "release": cmd_release,
+    "claims": cmd_claims,
+    "stats": cmd_stats,
+    "doctor": cmd_doctor,
+    "tour": cmd_tour,
+    "links": cmd_links,
+    "presets": cmd_presets,
+    "preset": cmd_preset,
+    "upgrade": cmd_upgrade,
+    "end": cmd_end,
+    "init": cmd_init,
+    "walkthrough": cmd_walkthrough,
+}
+
 
 if __name__ == "__main__":
     main()

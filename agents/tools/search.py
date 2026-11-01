@@ -182,7 +182,10 @@ def index_memory(root: Path = None, db_path: Path = None) -> int:
     import hashlib
 
     target_root = Path(root) if root else PROJECT_ROOT
-    conn = _connect(db_path)
+    # БД живёт в корне проекта (root), как в search_memory, — иначе запуск из
+    # другого cwd/установленного пакета молча пишет индекс в расположение модуля (BUG-002)
+    db = Path(db_path) if db_path else (target_root / INDEX_FILE.name)
+    conn = _connect(db)
     try:
         _ensure_schema(conn)
         seen = []

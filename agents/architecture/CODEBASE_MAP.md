@@ -1,7 +1,7 @@
 # 🗺️ Карта кодовой базы и граф зависимостей (CODEBASE_MAP.md)
 
 **Проект:** Second Brain Template  
-**Последнее обновление:** 2026-10-31  
+**Последнее обновление:** 2026-11-01  
 
 Этот документ помогает любому входящему агенту за 30 секунд понять файловую структуру проекта, назначение каждого модуля и связи между ними.
 
@@ -44,6 +44,7 @@ Second Brain Template/
 │   │   ├── secret_scan.py          # 🛡️ Сканер секретов в tracked/untracked файлах
 │   │   ├── stats.py                # 📊 Дашборд здоровья памяти (счётчики, битые ссылки, устаревшее)
 │   │   ├── doctor.py               # 🩺 Диагностика окружения (Python/FTS5/git/индекс/буфер/[mcp])
+│   │   ├── tour.py                 # 🧭 Экраны и рендер тура (вынесен из brain.py, PLAN-009)
 │   │   ├── new_plan.py / end_session.py / dump_context.py / init_project.py
 │   │   └── hooks/                  # Хуки Claude Code (gate, context, lint, session log)
 │   ├── mcp/brain_mcp.py            # 🧩 MCP-сервер (9 инструментов, optional extra [mcp])
@@ -70,7 +71,7 @@ Second Brain Template/
 
 | Путь к файлу / модулю | Назначение и ответственность | Ключевые функции / классы | Что проверить при изменении |
 |---|---|---|---|
-| `agents/tools/brain.py` | Единый CLI-диспетчер | `main()`, `sync_tools()`, `apply_preset()`, `upgrade_tool()`, `_detect_project_root()` | `brain.py --help`, тесты всех подкоманд |
+| `agents/tools/brain.py` | Единый CLI-диспетчер | `main()` (тонкий), `HANDLERS` (cmd_* хендлеры, PLAN-009), `sync_tools()`, `apply_preset()`, `upgrade_tool()`, `_detect_project_root()` | `brain.py --help`; смоки `tests/test_cli.py`; `transform_opencode_md`/фабрики — импортируются снаружи, не переезжать |
 | `agents/rules/CORE_RULES.md` | 📜 Канон правил проекта | 11 правил (вкл. prompt-injection) | `python brain.py sync --check` — конфиги перегенерированы |
 | `agents/tools/search.py` | 🔍 Поиск по памяти (FTS5) | `index_memory()`, `search_memory(tags=, since=)`, `parse_tags()`, `_fts_query()` | `tests/test_search.py`; индекс `.brain_index.db` в .gitignore; авто-миграция `docs.tags` |
 | `agents/tools/locks.py` | 🤝 Блокировки задач (мультиагентность) | `claim_task()`, `release_task()`, `list_claims()`, `_lock_status()` (heartbeat-TTL) | `tests/test_claim.py`; локи `agents/tasks/.locks/` в .gitignore |
@@ -86,7 +87,7 @@ Second Brain Template/
 | `agents/presets/*/preset.json` | Манифесты пресетов стека | `files[]` (src → dst) | `tests/test_presets.py`; секретов в env.example нет |
 | `agents/templates/sync/*.tpl` | Шаблоны 7 конфигов AI-инструментов | плейсхолдеры `{{...}}`; JSON-шаблоны Codex/OpenCode без маркера | `brain.py sync` — дрейф отсутствует |
 | `brain.py::transform_opencode_md` | Трансформа Claude → OpenCode (команды/агенты) | description + `mode: subagent`, read-only → deny permissions | `tests/test_sync.py::TestTransformOpencodeMd`; `$ARGUMENTS` сохраняется |
-| `tests/` | Набор авто-тестов (240) | unittest (stdlib) | `python -m unittest discover -s tests` |
+| `tests/` | Набор авто-тестов (254) | unittest (stdlib) | `python -m unittest discover -s tests` |
 | `.github/workflows/integrity.yml` | CI-ворота | compile → unittest → sync --check → integrity | Матрица Python 3.9/3.11/3.13 зелёная |
 
 > [!TIP]
