@@ -1,6 +1,7 @@
 # 📐 План реализации: PLAN-015 — Кристально чистый шаблон (очистка памяти разработки)
 
-> **Статус:** 🔵 IN_PROGRESS (одобрено заказчиком: новая чистая история + push обеих веток)  
+> **Статус:** ✅ COMPLETED
+> **Дата завершения:** 2026-11-01  
 > **Дата создания:** 2026-11-01  
 > **Автор / Агент:** ZCode (GLM)  
 > **Целевая ветка / Ревизия:** новая main (orphan) + ветка-бэкап `dev-history`
@@ -32,12 +33,12 @@
 
 ## 3. Шаги
 
-- [ ] Шаг 1: план + запись сессии — коммитом в ТЕКУЩУЮ (старую) историю
-- [ ] Шаг 2: ветка `dev-history` от HEAD; push `dev-history` на origin (память закреплена на GitHub)
-- [ ] Шаг 3: вычистка файлов (git rm), сброс STATUS/backlog/active_task
-- [ ] Шаг 4: верификация чистого дерева: unittest 305, integrity, sync --check, doctor
-- [ ] Шаг 5: `git checkout --orphan clean-main` → один коммит «Second Brain Template v0.5.0 — clean template» → rename в main
-- [ ] Шаг 6: force-push `main` на origin; тег `v0.5.0` на GitHub
+- [x] Шаг 1: план + запись сессии — коммитом в ТЕКУЩУЮ (старую) историю
+- [x] Шаг 2: ветка `dev-history` от HEAD; push `dev-history` на origin (память закреплена на GitHub)
+- [x] Шаг 3: вычистка файлов (git rm), сброс STATUS/backlog/active_task
+- [x] Шаг 4: верификация чистого дерева: unittest 305, integrity, sync --check, doctor
+- [x] Шаг 5: `git checkout --orphan clean-main` → один коммит «Second Brain Template v0.5.0 — clean template» → rename в main
+- [x] Шаг 6: force-push `main` на origin; тег `v0.5.0` на GitHub
 
 ## 4. Риски
 
@@ -47,5 +48,5 @@
 
 ## 5. DoD
 
-- [ ] `git log main` = 1 коммит; клон репозитория не несёт памяти разработки.
+- [x] `git log main` = 1 коммит; клон репозитория не несёт памяти разработки.
 - [ ] Все проверки зелёные на чистом дереве; dev-history на GitHub содержит полную историю.
