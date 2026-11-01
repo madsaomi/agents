@@ -10,7 +10,6 @@
 ## 🚀 Предстоящие задачи (Upcoming Tasks)
 
 ### 📌 Высокий приоритет (High)
-- [ ] **TASK-010:** PyPI v0.5.0 — релиз пакета `second-brain-template` по release-checklist (нужен PyPI-токен заказчика, наружное действие). Разблокировано: фабрики root-aware (PLAN-011).
 - [ ] Живой смоук Codex `/hooks` (trust-review) — внешний блокер: CLI Codex не установлен у заказчика.
 
 ### 📌 Средний приоритет (Medium)
@@ -34,3 +33,4 @@
 - TASK-011 — `brain graph`: mermaid-граф вики-связей (PLAN-012)
 - TASK-015 — Root-aware `run_integrity_check` и цель `dump` (PLAN-013)
 - TASK-012 — `brain digest`: компактная сводка (PLAN-013)
+- TASK-010 — PyPI-подготовка v0.5.0 выполнена (тег `v0.5.0`); публикация отменена заказчиком
