@@ -64,8 +64,10 @@ def get_next_plan_number(plans_dir: Path) -> int:
                 max_num = num
     return max_num + 1
 
-def create_plan(name: str, task_id: str, agent: str) -> Path:
-    plans_dir = AGENTS_DIR / "plans"
+def create_plan(name: str, task_id: str, agent: str, root=None) -> Path:
+    # Цель — от root проекта (PLAN-011, урок BUG-002); шаблон — пакетный ресурс от модуля
+    base_agents = (Path(root) / "agents") if root else AGENTS_DIR
+    plans_dir = base_agents / "plans"
     template_file = AGENTS_DIR / "templates" / "template_plan.md"
 
     if not template_file.is_file():

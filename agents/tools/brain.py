@@ -108,8 +108,8 @@ def get_next_number(directory: Path, prefix: str) -> int:
 # Генераторы сущностей: BUG, ADR, TASK
 # -----------------------------------------------------------------------------
 
-def create_bug_report(title: str, component: str, agent: str) -> Path:
-    bugs_dir = AGENTS_DIR / "bugs_and_fixes"
+def create_bug_report(title: str, component: str, agent: str, root=None) -> Path:
+    bugs_dir = ((Path(root) / "agents") if root else AGENTS_DIR) / "bugs_and_fixes"
     template_file = AGENTS_DIR / "templates" / "template_bug_report.md"
     if not template_file.is_file():
         raise FileNotFoundError("Шаблон template_bug_report.md не найден!")
@@ -132,8 +132,8 @@ def create_bug_report(title: str, component: str, agent: str) -> Path:
     target.write_text(content, encoding="utf-8")
     return target
 
-def create_adr_record(title: str, agent: str) -> Path:
-    adr_dir = AGENTS_DIR / "decisions"
+def create_adr_record(title: str, agent: str, root=None) -> Path:
+    adr_dir = ((Path(root) / "agents") if root else AGENTS_DIR) / "decisions"
     template_file = AGENTS_DIR / "templates" / "template_adr.md"
     if not template_file.is_file():
         raise FileNotFoundError("Шаблон template_adr.md не найден!")
@@ -156,8 +156,8 @@ def create_adr_record(title: str, agent: str) -> Path:
     target.write_text(content, encoding="utf-8")
     return target
 
-def create_task_card(title: str, priority: str, agent: str) -> Path:
-    tasks_dir = AGENTS_DIR / "tasks"
+def create_task_card(title: str, priority: str, agent: str, root=None) -> Path:
+    tasks_dir = ((Path(root) / "agents") if root else AGENTS_DIR) / "tasks"
     template_file = AGENTS_DIR / "templates" / "template_task.md"
     if not template_file.is_file():
         raise FileNotFoundError("Шаблон template_task.md не найден!")
@@ -181,8 +181,8 @@ def create_task_card(title: str, priority: str, agent: str) -> Path:
     target.write_text(content, encoding="utf-8")
     return target
 
-def create_walkthrough(title: str, plan_id: str, task_id: str, agent: str) -> Path:
-    wt_dir = AGENTS_DIR / "walkthroughs"
+def create_walkthrough(title: str, plan_id: str, task_id: str, agent: str, root=None) -> Path:
+    wt_dir = ((Path(root) / "agents") if root else AGENTS_DIR) / "walkthroughs"
     template_file = AGENTS_DIR / "templates" / "template_walkthrough.md"
     if not template_file.is_file():
         raise FileNotFoundError("Шаблон template_walkthrough.md не найден!")
@@ -747,7 +747,7 @@ def cmd_plan(args):
     if not name:
         print("❌ Название не может быть пустым.")
         return
-    p = create_plan(name=name, task_id=args.task, agent=args.agent)
+    p = create_plan(name=name, task_id=args.task, agent=args.agent, root=PROJECT_ROOT)
     rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
     print(f"🎉 План создан: {GREEN}{rel}{RESET}")
 
@@ -759,7 +759,7 @@ def cmd_bug(args):
     if not title:
         print("❌ Описание не может быть пустым.")
         return
-    p = create_bug_report(title=title, component=args.component, agent=args.agent)
+    p = create_bug_report(title=title, component=args.component, agent=args.agent, root=PROJECT_ROOT)
     rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
     print(f"🐛 Баг-репорт создан: {YELLOW}{rel}{RESET}")
 
@@ -771,7 +771,7 @@ def cmd_adr(args):
     if not title:
         print("❌ Название не может быть пустым.")
         return
-    p = create_adr_record(title=title, agent=args.agent)
+    p = create_adr_record(title=title, agent=args.agent, root=PROJECT_ROOT)
     rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
     print(f"🏛️ ADR создан: {BLUE}{rel}{RESET}")
 
@@ -783,7 +783,7 @@ def cmd_task(args):
     if not title:
         print("❌ Название не может быть пустым.")
         return
-    p = create_task_card(title=title, priority=args.priority, agent=args.agent)
+    p = create_task_card(title=title, priority=args.priority, agent=args.agent, root=PROJECT_ROOT)
     rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
     print(f"📋 Карточка задачи создана: {MAGENTA}{rel}{RESET}")
 
@@ -953,10 +953,10 @@ def cmd_upgrade(args):
 
 
 def cmd_end(args):
-    auto_done = extract_completed_tasks_from_active()
+    auto_done = extract_completed_tasks_from_active(root=PROJECT_ROOT)
     done_items = [d.strip() for d in args.done.split(";")] if args.done else (auto_done if auto_done else ["Работы выполнены."])
     next_step = args.next or "Продолжить по плану."
-    end_session(agent=args.agent, task_id=args.task, done_items=done_items, next_steps=next_step)
+    end_session(agent=args.agent, task_id=args.task, done_items=done_items, next_steps=next_step, root=PROJECT_ROOT)
 
 
 def cmd_init(args):
@@ -975,7 +975,7 @@ def cmd_init(args):
         desc = args.desc or "Проект в разработке"
         stack = args.stack or "Python"
         agent = args.agent
-    init_project(name=name, desc=desc, stack=stack, agent=agent)
+    init_project(name=name, desc=desc, stack=stack, agent=agent, root=PROJECT_ROOT)
     if args.preset:
         print()
         apply_preset(args.preset)
@@ -988,7 +988,7 @@ def cmd_walkthrough(args):
     if not title:
         print("❌ Название не может быть пустым.")
         return
-    p = create_walkthrough(title=title, plan_id=args.plan, task_id=args.task, agent=args.agent)
+    p = create_walkthrough(title=title, plan_id=args.plan, task_id=args.task, agent=args.agent, root=PROJECT_ROOT)
     rel = p.relative_to(PROJECT_ROOT) if PROJECT_ROOT in p.parents else p.name
     print(f"🚀 Walkthrough-отчёт создан: {GREEN}{rel}{RESET}")
 

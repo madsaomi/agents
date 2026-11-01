@@ -26,7 +26,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 AGENTS_DIR = SCRIPT_DIR.parent
 PROJECT_ROOT = AGENTS_DIR.parent
 
-def init_project(name: str, desc: str, stack: str, agent: str):
+def init_project(name: str, desc: str, stack: str, agent: str, root=None):
+    # Файлы проекта — от root (PLAN-011, урок BUG-002); шаблоны/образцы — ресурсы модуля
+    base = Path(root) if root else PROJECT_ROOT
+    agents_dir = base / "agents"
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     replacements = {
@@ -47,8 +50,8 @@ def init_project(name: str, desc: str, stack: str, agent: str):
     files_modified = 0
 
     # Сканируем markdown файлы в agents/ и корневой AGENTS.md
-    scan_targets = list(AGENTS_DIR.rglob("*.md"))
-    root_agents = PROJECT_ROOT / "AGENTS.md"
+    scan_targets = list(agents_dir.rglob("*.md"))
+    root_agents = base / "AGENTS.md"
     if root_agents.is_file():
         scan_targets.append(root_agents)
 
@@ -67,7 +70,7 @@ def init_project(name: str, desc: str, stack: str, agent: str):
                 file_path.write_text(content, encoding="utf-8")
                 files_modified += 1
                 try:
-                    rel = file_path.relative_to(PROJECT_ROOT)
+                    rel = file_path.relative_to(base)
                 except ValueError:
                     rel = file_path.name
                 print(f"  ✓ Обновлен: {rel}")
@@ -76,7 +79,7 @@ def init_project(name: str, desc: str, stack: str, agent: str):
 
     # Создаем карточку агента в registry если ее нет
     slug_agent = "".join(c if c.isalnum() else "_" for c in agent.lower()).strip("_")
-    registry_file = AGENTS_DIR / "registry" / f"agent_{slug_agent}.md"
+    registry_file = agents_dir / "registry" / f"agent_{slug_agent}.md"
     if not registry_file.exists():
         template_reg = AGENTS_DIR / "registry" / "agent_profile_template.md"
         reg_content = f"""# 👤 Профиль Агента: {agent}

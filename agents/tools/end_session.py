@@ -26,9 +26,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 AGENTS_DIR = SCRIPT_DIR.parent
 PROJECT_ROOT = AGENTS_DIR.parent
 
-def extract_completed_tasks_from_active() -> list:
-    """Извлекает пункты [x] из active_task.md."""
-    active_path = AGENTS_DIR / "tasks" / "active_task.md"
+def extract_completed_tasks_from_active(root=None) -> list:
+    """Извлекает пункты [x] из active_task.md (root — корень проекта, PLAN-011)."""
+    agents_dir = (Path(root) / "agents") if root else AGENTS_DIR
+    active_path = agents_dir / "tasks" / "active_task.md"
     if not active_path.is_file():
         return []
     try:
@@ -38,15 +39,18 @@ def extract_completed_tasks_from_active() -> list:
     except Exception:
         return []
 
-def end_session(agent: str, task_id: str, done_items: list, next_steps: str, decisions: str = ""):
+def end_session(agent: str, task_id: str, done_items: list, next_steps: str, decisions: str = "", root=None):
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%Y-%m-%d %H:%M")
     tz_name = now.astimezone().tzname() or ""
     time_display = f"{time_str} ({tz_name})" if tz_name else time_str
 
+    # Память — от root проекта (PLAN-011, урок BUG-002)
+    agents_dir = (Path(root) / "agents") if root else AGENTS_DIR
+
     # Вычисляем следующий номер сессии за сегодня
-    history_dir = AGENTS_DIR / "history"
+    history_dir = agents_dir / "history"
     existing_today = list(history_dir.glob(f"session_{date_str}_*.md"))
     session_num = len(existing_today) + 1
 
@@ -59,7 +63,7 @@ def end_session(agent: str, task_id: str, done_items: list, next_steps: str, dec
     decisions_text = decisions.strip() if decisions.strip() else ""
     if not decisions_text:
         # Пытаемся извлечь решения из последнего ADR
-        adr_dir = AGENTS_DIR / "decisions"
+        adr_dir = agents_dir / "decisions"
         adr_files = sorted(
             [f for f in adr_dir.glob("ADR_*.md")],
             key=lambda x: x.stat().st_mtime,
@@ -106,7 +110,7 @@ def end_session(agent: str, task_id: str, done_items: list, next_steps: str, dec
     print(f"\n✓ Создан отчет о сессии: agents/history/{filename}")
 
     # Обновляем временную метку в STATUS.md
-    status_file = AGENTS_DIR / "STATUS.md"
+    status_file = agents_dir / "STATUS.md"
     if status_file.is_file():
         status_text = status_file.read_text(encoding="utf-8", errors="replace")
         # Заменяем дату последнего обновления
