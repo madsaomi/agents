@@ -49,3 +49,6 @@ tmp/
 .brain_index.db
 brain_index.db*
 agents/tasks/.locks/
+
+second_brain_template.egg-info/
+build/
